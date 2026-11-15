@@ -1,0 +1,72 @@
+
+syntax = "proto3";
+
+service ParameterServer {
+    rpc Push (PushRequest) returns (PushResponse);
+    rpc Pull (PullRequest) returns (PullResponse);
+
+    rpc SetUpdateRule (SetUpdateRuleRequest)
+        returns (SetUpdateRuleResponse);
+
+    rpc RegisterUpdateRule (RegisterUpdateRuleRequest)
+    returns (RegisterUpdateRuleResponse);
+}
+
+message PushRequest {
+    repeated uint64 keys = 1;
+    repeated double gradients = 2;
+    uint32 width = 3;
+    KeyRange key_range = 4;
+    TaskId task_id = 5;
+
+    // Tasks that must succeed before this push executes.
+    repeated TaskId dependencies = 6;
+}
+
+message PushResponse {
+    bool accepted = 1;
+}
+
+message PullRequest {
+    repeated uint64 keys = 1;
+    KeyRange key_range = 2;
+
+    // Identity of this pull operation.
+    TaskId task_id = 3;
+
+    // Tasks that must succeed before this pull executes.
+    repeated TaskId dependencies = 4;
+}
+
+message PullResponse {
+    repeated double values = 1;
+    repeated uint64 keys = 2;
+    uint32 width = 3;
+}
+
+message KeyRange {
+    uint64 begin = 1;
+    uint64 end = 2;
+}
+
+message TaskId {
+    uint32 worker_id = 1;
+    uint64 sequence = 2;
+}
+
+message SetUpdateRuleRequest {
+    string name = 1;
+}
+
+message SetUpdateRuleResponse {
+    string active_rule = 1;
+}
+
+message RegisterUpdateRuleRequest {
+    string name = 1;
+    double gradient_scale = 2;
+}
+
+message RegisterUpdateRuleResponse {
+    bool registered = 1;
+}
