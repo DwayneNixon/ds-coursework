@@ -1,0 +1,39 @@
+
+{
+  "experiment": "b5_integrated",
+  "seed": 42,
+  "server_address": "127.0.0.1:50051",
+  "model": {
+    "num_keys": 16,
+    "value_width": 2
+  },
+  "workers": {
+    "ids": [701, 702],
+    "iterations": 8,
+    "compute_ms": 200
+  },
+  "scenario": [
+    {
+      "at": {"iteration": 1},
+      "action": "delay_link",
+      "a": 701,
+      "b": "server1",
+      "ms": 80,
+      "jitter_ms": 0
+    },
+    {
+      "at": {"time_s": 0.3},
+      "action": "add_worker",
+      "count": 1
+    },
+    {
+      "at": {"iteration": 2},
+      "action": "kill_worker",
+      "target": 702
+    }
+  ],
+  "output": {
+    "dir": "results/b5_integrated",
+    "observer_interval_s": 0.1
+  }
+}
