@@ -18,18 +18,24 @@ message PushRequest {
     uint32 width = 3;
     KeyRange key_range = 4;
     TaskId task_id = 5;
+    repeated ClockEntry required_clock = 8;
 
     // Tasks that must succeed before this push executes.
     repeated TaskId dependencies = 6;
+
+    // Logical training iteration, independent of Task ID sequence.
+    optional uint64 iteration = 7;
 }
 
 message PushResponse {
     bool accepted = 1;
+    repeated ClockSegment clocks = 2;
 }
 
 message PullRequest {
     repeated uint64 keys = 1;
     KeyRange key_range = 2;
+    repeated ClockEntry required_clock = 5;
 
     // Identity of this pull operation.
     TaskId task_id = 3;
@@ -42,6 +48,7 @@ message PullResponse {
     repeated double values = 1;
     repeated uint64 keys = 2;
     uint32 width = 3;
+    repeated ClockSegment clocks = 4;
 }
 
 message KeyRange {
@@ -53,6 +60,24 @@ message TaskId {
     uint32 worker_id = 1;
     uint64 sequence = 2;
 }
+
+
+message ClockEntry {
+    uint32 worker_id = 1;
+    uint64 counter = 2;
+}
+
+message ClockSegment {
+    string partition_id = 1;
+    uint64 begin = 2;
+    uint64 end = 3;
+
+    // An exclusive endpoint of 2^64 cannot fit in uint64.
+    bool end_is_keyspace_end = 4;
+
+    repeated ClockEntry entries = 5;
+}
+
 
 message SetUpdateRuleRequest {
     string name = 1;

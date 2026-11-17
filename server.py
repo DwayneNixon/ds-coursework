@@ -7,7 +7,8 @@ import hashlib
 import time
 import parameter_server_pb2 as pb
 import parameter_server_pb2_grpc as pb_grpc
-
+from range_clocks import RangeClocks
+from routing import KEY_SPACE_END
 
 def sgd_update(weights, gradients, learning_rate):
     """Apply SGD to one parameter vector."""
@@ -33,6 +34,9 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         # Track successful and failed tasks for dependencies.
         self.task_states = {}
 
+        # Partition ID -> RangeClocks instance
+        self.range_clocks = {}
+
         # Share the existing lock with dependency waiters.
         self.task_condition = threading.Condition(self.lock)
 
@@ -47,6 +51,73 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         # SGD remains the default.
         self.active_update_rule = "sgd"
 
+        # None means ownership enforcement is disabled.
+        # This preserves the original Part A server behaviour.
+        self.owner = None
+        self.ownership_table = None
+
+
+    def set_ownership(self, owner, table):
+        """Install an ownership map for this server."""
+
+        with self.lock:
+            if self.ownership_table is not None:
+                current = self.ownership_table
+
+                if table.epoch < current.epoch:
+                    raise ValueError("Cannot install an older map")
+
+                if (
+                    table.epoch == current.epoch
+                    and table.partitions != current.partitions
+                ):
+                    raise ValueError(
+                        "Ownership changed without a new epoch"
+                    )
+            
+            # Prepare clocks for newly owned partitions.
+            new_clocks = {}
+
+            for partition in table.partitions:
+                if partition.owner != owner:
+                    continue
+
+                existing = self.range_clocks.get(
+                    partition.partition_id
+                )
+
+                if existing is None:
+                    new_clocks[partition.partition_id] = RangeClocks(
+                        partition.begin,
+                        partition.end,
+                    )
+
+                elif (
+                    existing.begin != partition.begin
+                    or existing.end != partition.end
+                ):
+                    raise ValueError(
+                        "Changing clock boundaries requires "
+                        "a range transfer"
+                    )
+
+            self.range_clocks.update(new_clocks)
+
+            self.owner = owner
+            self.ownership_table = table
+
+    def _check_ownership(self, keys, context):
+        """Reject requests containing keys owned elsewhere."""
+
+        if self.ownership_table is None:
+            return
+
+        if not self.ownership_table.owns(self.owner, keys):
+            context.abort(
+                grpc.StatusCode.FAILED_PRECONDITION,
+                f"NOT_OWNER: server={self.owner}, "
+                f"epoch={self.ownership_table.epoch}",
+            )
 
     def _resolve_keys(self, request, context):
         # Check whether the request uses a dense range.
@@ -80,6 +151,123 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             )
 
         return keys
+
+
+    def _clock_requirements_satisfied(self, keys, required):
+        """Check required worker counters on every requested key.
+
+        Called while holding self.lock.
+        """
+
+        if isinstance(keys, range):
+            routes = self.ownership_table.split_range(
+                keys.start, keys.stop
+            )
+        else:
+            routes = self.ownership_table.split_keys(keys)
+
+        for route in routes:
+            state = self.range_clocks.get(route.partition_id)
+
+            if state is None:
+                return False
+
+            if isinstance(keys, range):
+                # Check intervals without enumerating dense keys.
+                position = route.begin
+
+                for begin, end, clock in state.snapshot():
+                    if end <= position:
+                        continue
+
+                    if begin >= route.end:
+                        break
+
+                    if begin > position:
+                        return False
+
+                    if any(
+                        clock.get(worker, 0) < counter
+                        for worker, counter in required.items()
+                    ):
+                        return False
+
+                    position = min(end, route.end)
+
+                    if position >= route.end:
+                        break
+
+                if position < route.end:
+                    return False
+
+            else:
+                # Sparse requests check their individual keys.
+                for key in route.keys:
+                    clock = state.clock_for_key(key)
+
+                    if any(
+                        clock.get(worker, 0) < counter
+                        for worker, counter in required.items()
+                    ):
+                        return False
+
+        return True
+
+    def _wait_for_clock_dependencies(self, request, keys, context):
+        """Wait until all requested keys satisfy the clock."""
+
+        entries = list(request.required_clock)
+
+        if not entries:
+            return
+
+        required = {
+            entry.worker_id: entry.counter
+            for entry in entries
+        }
+
+        if (
+            len(required) != len(entries)
+            or any(entry.counter == 0 for entry in entries)
+        ):
+            context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "Invalid clock dependency",
+            )
+
+        deadline = time.monotonic() + self.dependency_timeout
+
+        # task_condition uses the same lock as the weights
+        # and per-range clocks.
+        with self.task_condition:
+            if self.ownership_table is None:
+                context.abort(
+                    grpc.StatusCode.FAILED_PRECONDITION,
+                    "CLOCKS_DISABLED: ownership not configured",
+                )
+
+            while True:
+                # Ownership might change while waiting.
+                self._check_ownership(keys, context)
+
+                if self._clock_requirements_satisfied(
+                    keys, required
+                ):
+                    return
+
+                remaining = deadline - time.monotonic()
+
+                if remaining <= 0:
+                    context.abort(
+                        grpc.StatusCode.DEADLINE_EXCEEDED,
+                        "CLOCK_DEPENDENCY_TIMEOUT: "
+                        "required updates not yet received",
+                    )
+
+                # Releases the shared lock while waiting.
+                self.task_condition.wait(
+                    timeout=min(remaining, 0.1)
+                )
 
 
     def _wait_for_dependencies(self, request, context):
@@ -168,7 +356,104 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
             self.task_condition.notify_all()
 
-    
+
+    def _prepare_push_clocks(self, request, task_key):
+        """Prepare clock changes without modifying stored clocks."""
+        
+        # Preserve compatibility with legacy clients and
+        # standalone Part A servers.
+        if task_key is None or self.ownership_table is None:
+            return {}
+
+        worker_id, sequence = task_key
+
+        # Explicit training iteration takes precedence.
+        # Older clients retain Task-sequence behaviour.
+        clock_counter = (
+            request.iteration
+            if request.HasField("iteration")
+            else sequence
+        )
+
+        if request.HasField("key_range"):
+            routes = self.ownership_table.split_range(
+                request.key_range.begin,
+                request.key_range.end,
+            )
+        else:
+            routes = self.ownership_table.split_keys(
+                list(request.keys)
+            )
+
+        prepared = {}
+
+        for route in routes:
+            partition_id = route.partition_id
+
+            if partition_id not in prepared:
+                original = self.range_clocks[partition_id]
+                prepared[partition_id] = original.clone()
+
+            clock = prepared[partition_id]
+
+            if hasattr(route, "keys"):
+                # Sparse keys may affect separate intervals.
+                for key in route.keys:
+                    clock.record(
+                        key, key + 1, worker_id, clock_counter,
+                    )
+            else:
+                # A dense interval can be recorded at once.
+                clock.record(
+                    route.begin,
+                    route.end,
+                    worker_id,
+                    clock_counter,
+                )
+
+        return prepared
+
+
+    def _attach_clock_segments(self, response, keys):
+        """Include clock snapshots for partitions touched by a request.
+
+        Called while holding the existing server lock.
+        """
+
+        if self.ownership_table is None:
+            return
+
+        if isinstance(keys, range):
+            routes = self.ownership_table.split_range(
+                keys.start, keys.stop
+            )
+        else:
+            routes = self.ownership_table.split_keys(keys)
+
+        for route in routes:
+            state = self.range_clocks.get(route.partition_id)
+
+            if state is None:
+                continue
+
+            # Begin with all segments of each touched partition.
+            for begin, end, clock in state.snapshot():
+                at_end = end == KEY_SPACE_END
+
+                segment = response.clocks.add(
+                    partition_id=route.partition_id,
+                    begin=begin,
+                    end=0 if at_end else end,
+                    end_is_keyspace_end=at_end,
+                )
+
+                # Stable ordering makes results easier to test.
+                for worker_id, counter in sorted(clock.items()):
+                    segment.entries.add(
+                        worker_id=worker_id,
+                        counter=counter,
+                    )
+
     def _execute_push(self, request, context):
         keys = self._resolve_keys(request, context)
         gradients = list(request.gradients)
@@ -199,6 +484,19 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                 "Gradients must contain only finite numbers"
             )
 
+        if request.HasField("iteration"):
+            if request.iteration == 0:
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    "Iteration must be positive",
+                )
+
+            if not request.HasField("task_id"):
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    "Explicit iteration requires a Task ID",
+                )
+
         # Identify this logical operation, if an ID was supplied.
         task_key = None
         fingerprint = None
@@ -224,6 +522,10 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                 request_bytes
             ).digest()
 
+        self._wait_for_clock_dependencies(
+            request, keys, context
+        )
+
         with self.lock:
             # Check whether this task has already completed.
             if task_key is not None:
@@ -237,10 +539,26 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                         )
 
                     # Already applied: do not update weights again.
-                    return pb.PushResponse(accepted=True)
+                    response = pb.PushResponse(accepted=True)
+                    self._attach_clock_segments(response, keys)
+                    return response
 
             # Prepare every update before modifying stored parameters.
             # Keep this entire section inside the existing server lock.
+
+            # Only new updates need current ownership.
+            # Already-completed requests were handled above.
+            self._check_ownership(keys, context)
+
+            try:
+                prepared_clocks = self._prepare_push_clocks(
+                    request, task_key
+                )
+            except (ValueError, KeyError) as error:
+                context.abort(
+                    grpc.StatusCode.INTERNAL,
+                    f"Clock preparation failed: {error}"
+                )
 
             prepared_updates = {}
 
@@ -303,13 +621,18 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             # COMMIT PHASE:
             # Only reached when ALL calculations have succeeded.
             self.weights.update(prepared_updates)
+            self.range_clocks.update(prepared_clocks)
+            self.task_condition.notify_all()
 
 
             # Record the completed operation while still locked.
             if task_key is not None:
                 self.completed_pushes[task_key] = fingerprint
 
-        return pb.PushResponse(accepted=True)
+            response = pb.PushResponse(accepted=True)
+            self._attach_clock_segments(response, keys)
+
+        return response
 
 
     def _execute_pull(self, request, context):
@@ -318,19 +641,28 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
         values = []
 
+        self._wait_for_clock_dependencies(
+            request, keys, context
+        )
+
         with self.lock:
+            self._check_ownership(keys, context)
+
             for key in keys:
                 vector = self.weights.get(
-                    key,
-                    [0.0] * self.value_width
+                    key, [0.0] * self.value_width
                 )
                 values.extend(vector)
 
-        return pb.PullResponse(
-            keys=keys,
-            values=values,
-            width=self.value_width
-        )
+            response = pb.PullResponse(
+                keys=keys,
+                values=values,
+                width=self.value_width,
+            )
+
+            self._attach_clock_segments(response, keys)
+
+        return response
 
 
     def Push(self, request, context):

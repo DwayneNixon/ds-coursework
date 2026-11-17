@@ -57,6 +57,47 @@ def serialized_pull_request_size(target, task, deps=None):
     return request.ByteSize()
 
 
+def distributed_payload_sizes(task, op):
+    """Sum the serialized payload sizes of all server subrequests."""
+
+    bytes_out = 0
+    bytes_in = 0
+
+    for route, subtask in task.tasks:
+
+        if op == "push":
+            request_data = subtask._push_request_bytes
+
+            if request_data is None:
+                raise RuntimeError(
+                    "Serialized push request is unavailable"
+                )
+
+            bytes_out += len(request_data)
+
+        elif op == "pull":
+            if hasattr(route, "keys"):
+                subtarget = list(route.keys)
+            else:
+                subtarget = range(route.begin, route.end)
+
+            bytes_out += serialized_pull_request_size(
+                subtarget, subtask
+            )
+
+        else:
+            raise ValueError(f"Unknown operation: {op}")
+
+        # The logical Task has completed, so its
+        # underlying server Tasks must also be complete.
+        # A rejected RPC has no successful Protobuf response.
+        # Its request bytes still count.
+        if subtask._future.exception() is None:
+            response = subtask.wait(timeout_ms=0)
+            bytes_in += response.ByteSize()
+
+    return bytes_out, bytes_in
+
 def measure_operation(
     create_task,
     worker_id,
@@ -66,6 +107,7 @@ def measure_operation(
     record_callback=None,
     target=None,
     deps=None,
+
 ):
     """Measure RPC latency and serialized Protobuf bytes."""
 
@@ -79,6 +121,11 @@ def measure_operation(
         task = create_task()
         result = task.wait(timeout_ms=5000)
 
+        # Distributed Tasks contain several gRPC subrequests.
+        if hasattr(task, "tasks"):
+            bytes_out, bytes_in = distributed_payload_sizes(task, op)
+            return task, result
+        
         # Calculate serialized outgoing request bytes.
         if op == "push":
             request_data = task._push_request_bytes

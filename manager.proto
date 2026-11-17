@@ -1,0 +1,45 @@
+
+syntax = "proto3";
+
+service OwnershipManager {
+    rpc GetMap(GetMapRequest) returns (GetMapReply);
+
+    rpc CanStart(CanStartRequest) returns (CanStartReply);
+
+    rpc CompleteIteration(CompleteIterationRequest)
+        returns (CompleteIterationReply);
+}
+
+message GetMapRequest {}
+
+message PartitionInfo {
+    string partition_id = 1;
+    uint64 begin = 2;
+    uint64 end = 3;
+    bool end_is_keyspace_end = 4;
+    string owner = 5;
+}
+
+message GetMapReply {
+    uint64 epoch = 1;
+    repeated PartitionInfo partitions = 2;
+}
+
+
+message CanStartRequest {
+    uint64 iteration = 1;
+}
+
+message CanStartReply {
+    bool allowed = 1;
+    uint64 required_iteration = 2;
+}
+
+message CompleteIterationRequest {
+    uint32 worker_id = 1;
+    uint64 iteration = 2;
+}
+
+message CompleteIterationReply {
+    uint64 completed_iteration = 1;
+}

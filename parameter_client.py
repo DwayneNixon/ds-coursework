@@ -50,6 +50,40 @@ class Task:
                 "TIMEOUT: task has not completed"
             ) from error
 
+def normalize_required_clock(required_clock):
+    """Validate and copy an optional vector-clock requirement."""
+
+    if required_clock is None:
+        return {}
+
+    if not isinstance(required_clock, dict):
+        raise TypeError(
+            "required_clock must be a dictionary"
+        )
+
+    result = {}
+
+    for worker_id, counter in required_clock.items():
+        if (
+            type(worker_id) is not int
+            or not 0 <= worker_id < (1 << 32)
+        ):
+            raise ValueError(
+                "Clock worker ID must be a uint32 integer"
+            )
+
+        if (
+            type(counter) is not int
+            or not 1 <= counter < (1 << 64)
+        ):
+            raise ValueError(
+                "Clock counter must be a positive uint64 integer"
+            )
+
+        result[worker_id] = counter
+
+    return result
+
 
 class ParameterClient:
     """Client interface for accessing the parameter server."""
@@ -209,9 +243,26 @@ class ParameterClient:
     
     
     
-    def push(self, target, gradients, width, deps=None):
+    def push(
+        self, target, gradients, width, deps=None,
+        iteration=None, required_clock=None
+    ):
         """Submit a new logical push with its own Task ID."""
 
+        if iteration is not None:
+            if (
+                type(iteration) is not int
+                or not 1 <= iteration < (1 << 64)
+            ):
+                raise ValueError(
+                    "Iteration must be a positive uint64 integer"
+                )
+
+            if self.worker_id is None:
+                raise ValueError(
+                    "Explicit iterations require a worker ID"
+                )
+            
         fields = self._target_fields(target)
 
         request = pb.PushRequest(
@@ -219,6 +270,10 @@ class ParameterClient:
             width=width,
             **fields
         )
+        self._attach_required_clock(request, required_clock)
+
+        if iteration is not None:
+            request.iteration = iteration
 
         # Generate a unique Push Task ID.
         task_id = self._next_task_id()
@@ -317,11 +372,12 @@ class ParameterClient:
 
         return retry_task
  
-    def pull(self, target, deps=None):
+    def pull(self, target, deps=None, required_clock=None):
         """Start a pull after its optional dependencies succeed."""
 
         fields = self._target_fields(target)
         request = pb.PullRequest(**fields)
+        self._attach_required_clock(request, required_clock)
 
         task_id = self._next_pull_task_id()
 
@@ -404,6 +460,16 @@ class ParameterClient:
 
         return response.active_rule
 
+    def _attach_required_clock(self, request, required_clock):
+        """Add clock dependencies to a Push or Pull request."""
+
+        required = normalize_required_clock(required_clock)
+
+        for worker_id, counter in sorted(required.items()):
+            request.required_clock.add(
+                worker_id=worker_id,
+                counter=counter,
+            )
 
     def close(self):
         """Close the connection to the server."""
