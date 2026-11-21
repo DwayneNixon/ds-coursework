@@ -119,6 +119,48 @@ def insert_verified_results(source):
         "update counts; equal wall time can produce different work done."
     )
 
+    x4 = read_json("results/x4_comparison/summary.json")
+    optimization_names = {
+        "D1_sparse_key_cache": "D1 key-list caching",
+        "D2_lossless_compression": "D2 value compression",
+        "D1_D2_combined": "D1+D2 combined",
+        "D3_sparse_pull_batching": "D3 Pull batching",
+    }
+    records = x4.get("rows", [])
+    if len(records) != 4 or {
+        record["optimization"] for record in records
+    } != set(optimization_names):
+        raise ValueError("X4 needs the four paired byte/latency comparisons")
+    x4_summary = (
+        "The three-trial X4 comparisons quantify both serialized payload "
+        "traffic and p99 latency. Cached key lists, lossless compression "
+        "and their combination reduce bytes but can add encoding/cache "
+        "latency. Grouped Pull batching also reduces physical RPC count by "
+        f"**{x4['d3_rpc_reduction_percent']:.1f}%**. "
+        "Figure 5 plots the byte reductions; the paired medians below "
+        "show the p99 cost or benefit of each technique."
+    )
+    x4_table = [
+        "| Optimization | Bytes saved | Baseline → optimized p99 |",
+        "|---|---:|---:|",
+    ]
+    for record in records:
+        op = record["optimization"]
+        latency_scope = (
+            "group Pull" if op == "D3_sparse_pull_batching" else "Push"
+        )
+        x4_table.append(
+            f"| {optimization_names[op]} | "
+            f"{record['bytes_saved_percent']:.2f}% | "
+            f"{record['baseline_p99_ms']:.2f} → "
+            f"{record['optimized_p99_ms']:.2f} ms ({latency_scope}) |"
+        )
+    x4_table = "\n".join(x4_table)
+    x4_summary += (
+        " D3's group-of-eight Pull p99 is **not directly comparable** "
+        "with the D1/D2 Push p99 values."
+    )
+
     timing = x6["recovery_times"]
     decomposition = timing["decomposition"]
     conservative = timing["throughput"]["postfault_only_recovery_s"]
@@ -170,6 +212,8 @@ def insert_verified_results(source):
         "{{X2_TABLE}}": table,
         "{{X2_INTERPRETATION}}": comment,
         "{{X3_SUMMARY}}": x3text,
+        "{{X4_SUMMARY}}": x4_summary,
+        "{{X4_TABLE}}": x4_table,
         "{{X6_SUMMARY}}": x6text,
         "{{X7_TABLE}}": "\n".join(rows),
     }
