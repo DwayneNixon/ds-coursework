@@ -4,7 +4,7 @@ import parameter_server_pb2 as pb
 import manager_pb2_grpc as manager_grpc
 
 from concurrent import futures
-from Part_C_Tests.test_c2_server_ownership import make_server
+from harness.local_servers import make_server
 from distributed_client import DistributedParameterClient
 from server_manager import ServerManager
 from manager_rpc import ManagerService
