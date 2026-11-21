@@ -1,0 +1,5 @@
+# The committed *_pb2.py and *_pb2_grpc.py files were generated with
+# Protobuf 7.35.1 and gRPC 1.85.1 respectively.
+grpcio>=1.85.1,<2
+protobuf>=7.35.1,<8
+matplotlib>=3.8,<4
