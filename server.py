@@ -33,6 +33,15 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         # Maps completed task IDs to request fingerprints.
         self.completed_pushes = {}
 
+        # E1.2: Keep the affected interval for migration-safe deduplication.
+        self.completed_push_bounds = {}
+
+        # E1.2: At most one outgoing range transfer at a time.
+        self._transfer = None
+
+        # State received from another server, not yet activated.
+        self._incoming_transfer = None
+
         # Track successful and failed tasks for dependencies.
         self.task_states = {}
 
@@ -117,6 +126,464 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
             self.owner = owner
             self.ownership_table = table
+            self.task_condition.notify_all()
+
+    def begin_range_transfer(self, begin, end):
+        """Snapshot an owned interval while normal requests continue."""
+
+        with self.lock:
+            if self._transfer is not None:
+                raise RuntimeError("A range transfer is already active")
+
+            if (
+                type(begin) is not int
+                or type(end) is not int
+                or not 0 <= begin < end <= KEY_SPACE_END
+            ):
+                raise ValueError("Invalid transfer range")
+
+            if self.ownership_table is None:
+                raise RuntimeError("Ownership must be configured")
+
+            # E1.2 supports an interval within one owned partition.
+            partition = next(
+                (
+                    part for part in self.ownership_table.partitions
+                    if part.owner == self.owner
+                    and part.begin <= begin < end <= part.end
+                ),
+                None,
+            )
+
+            if partition is None:
+                raise ValueError(
+                    "Transfer must lie within one owned partition"
+                )
+
+            # Everything below is protected by the same lock as Push.
+            self._transfer = {
+                "begin": begin,
+                "end": end,
+                "partition_id": partition.partition_id,
+                "dirty_keys": set(),
+                "new_pushes": set(),
+                "frozen": False,
+            }
+
+            weights = {
+                key: vector.copy()
+                for key, vector in self.weights.items()
+                if begin <= key < end
+            }
+
+            clocks = self.range_clocks[
+                partition.partition_id
+            ].extract(begin, end).snapshot()
+
+            # Only copy completed requests entirely inside the interval.
+            completed = {
+                task_id: (
+                    fingerprint,
+                    self.completed_push_bounds[task_id],
+                )
+                for task_id, fingerprint in self.completed_pushes.items()
+                if task_id in self.completed_push_bounds
+                and self._task_within_transfer(task_id, begin, end)
+            }
+
+            return {
+                "begin": begin,
+                "end": end,
+                "weights": weights,
+                "clock_segments": clocks,
+                "completed_pushes": completed,
+            }
+
+    def _task_within_transfer(self, task_id, begin, end):
+        """Whether a completed Push is wholly within an interval.
+
+        Called with self.lock already held.
+        """
+        left, right = self.completed_push_bounds[task_id]
+        return left < right and begin <= left and right <= end
+
+    def freeze_range_transfer(self):
+        """Fence the moving interval and capture changes since snapshot."""
+
+        with self.task_condition:
+            transfer = self._transfer
+
+            if transfer is None or transfer["frozen"]:
+                raise RuntimeError("No active copying transfer")
+
+            transfer["frozen"] = True
+            begin = transfer["begin"]
+            end = transfer["end"]
+            partition_id = transfer["partition_id"]
+
+            completed = {
+                task_id: (
+                    self.completed_pushes[task_id],
+                    self.completed_push_bounds[task_id],
+                )
+                for task_id in transfer["new_pushes"]
+                if self._task_within_transfer(task_id, begin, end)
+            }
+
+            # Transfer final parameter values (after-images), not gradients.
+            return {
+                "begin": begin,
+                "end": end,
+                "weights": {
+                    key: self.weights[key].copy()
+                    for key in sorted(transfer["dirty_keys"])
+                },
+                "clock_segments": self.range_clocks[
+                    partition_id
+                ].extract(begin, end).snapshot(),
+                "completed_pushes": completed,
+            }
+
+    def cancel_range_transfer(self):
+        """Cancel an outgoing transfer and resume source requests."""
+
+        with self.task_condition:
+            if self._transfer is None:
+                raise RuntimeError("No active transfer")
+
+            self._transfer = None
+            self.task_condition.notify_all()
+
+    def finish_outgoing_transfer(self, new_table):
+        """Switch source ownership and preserve retained clock history."""
+
+        with self.task_condition:
+            transfer = self._transfer
+
+            if transfer is None or not transfer["frozen"]:
+                raise RuntimeError(
+                    "Source must be frozen before cutover"
+                )
+
+            if new_table.epoch != self.ownership_table.epoch + 1:
+                raise ValueError("Incorrect ownership epoch")
+
+            begin = transfer["begin"]
+            end = transfer["end"]
+            old_id = transfer["partition_id"]
+
+            original = next(
+                part for part in self.ownership_table.partitions
+                if part.partition_id == old_id
+            )
+
+            # The moving range must belong to another server.
+            moved = [
+                part for part in new_table.partitions
+                if part.begin == begin
+                and part.end == end
+                and part.owner != self.owner
+            ]
+
+            if len(moved) != 1:
+                raise ValueError(
+                    "New map must assign the moving range "
+                    "to another server"
+                )
+
+            # Identify the portions that remain on this server.
+            retained = [
+                part for part in new_table.partitions
+                if part.owner == self.owner
+                and original.begin <= part.begin
+                and part.end <= original.end
+            ]
+
+            retained.sort(key=lambda part: part.begin)
+
+            expected = []
+
+            if original.begin < begin:
+                expected.append((original.begin, begin))
+
+            if end < original.end:
+                expected.append((end, original.end))
+
+            actual = [
+                (part.begin, part.end)
+                for part in retained
+            ]
+
+            if actual != expected:
+                raise ValueError(
+                    "Retained source ranges do not match "
+                    "the original partition"
+                )
+
+            # Other previously owned partitions must be unchanged.
+            for part in self.ownership_table.partitions:
+                if (
+                    part.owner == self.owner
+                    and part.partition_id != old_id
+                    and part not in new_table.partitions
+                ):
+                    raise ValueError(
+                        "Unrelated source partition was modified"
+                    )
+
+            # Crucial: preserve clocks for BOTH retained sides.
+            original_clocks = self.range_clocks[old_id]
+
+            retained_clocks = {
+                part.partition_id: original_clocks.extract(
+                    part.begin, part.end
+                )
+                for part in retained
+            }
+
+            self.range_clocks.update(retained_clocks)
+
+            owned_ids = {
+                part.partition_id
+                for part in new_table.partitions
+                if part.owner == self.owner
+            }
+
+            if old_id not in owned_ids:
+                self.range_clocks.pop(old_id, None)
+
+            # The destination now holds the transferred values.
+            # The source must no longer store these parameters.
+            for key in list(self.weights):
+                if begin <= key < end:
+                    del self.weights[key]
+
+            # Existing deduplication records are retained for
+            # exact historical retries.
+            self.ownership_table = new_table
+            self.key_cache.clear()
+
+            # Release frozen requests. They will now check the
+            # new ownership map and receive NOT_OWNER if moved.
+            self._transfer = None
+            self.task_condition.notify_all()
+
+    def _wait_for_transfer(self, keys):
+        """Wait if the requested keys intersect a frozen transfer.
+
+        The caller must hold self.lock (shared with task_condition).
+        """
+        while self._transfer is not None and self._transfer["frozen"]:
+            begin = self._transfer["begin"]
+            end = self._transfer["end"]
+
+            if isinstance(keys, range):
+                affected = keys.start < end and begin < keys.stop
+            else:
+                affected = any(begin <= key < end for key in keys)
+
+            if not affected:
+                return
+
+            # Condition.wait releases self.lock while the request waits.
+            self.task_condition.wait(timeout=0.1)
+
+    def _copy_transfer_data(self, payload, begin, end):
+        """Validate and copy incoming transfer data."""
+
+        if not isinstance(payload, dict) or (
+            payload.get("begin"), payload.get("end")
+        ) != (begin, end):
+            raise ValueError("Transfer boundaries do not match")
+
+        clocks = RangeClocks.from_segments(
+            begin, end, payload["clock_segments"]
+        )
+
+        weights = {}
+
+        for key, vector in payload["weights"].items():
+            if type(key) is not int or not begin <= key < end:
+                raise ValueError("Transferred key outside interval")
+
+            if len(vector) != self.value_width or any(
+                not isinstance(v, (int, float))
+                or isinstance(v, bool)
+                or not math.isfinite(v)
+                for v in vector
+            ):
+                raise ValueError("Invalid transferred parameter vector")
+
+            weights[key] = list(vector)
+
+        completed = {}
+
+        for task_id, (fingerprint, bounds) in (
+            payload["completed_pushes"].items()
+        ):
+            if (
+                not isinstance(task_id, tuple)
+                or len(task_id) != 2
+                or type(task_id[0]) is not int
+                or not 0 <= task_id[0] < (1 << 32)
+                or type(task_id[1]) is not int
+                or not 0 < task_id[1] < (1 << 64)
+                or not isinstance(fingerprint, bytes)
+                or len(fingerprint) != 32
+                or not isinstance(bounds, tuple)
+                or len(bounds) != 2
+                or not begin <= bounds[0] < bounds[1] <= end
+            ):
+                raise ValueError("Invalid transferred Push record")
+
+            completed[task_id] = (fingerprint, bounds)
+
+        return weights, clocks, completed
+
+    def stage_incoming_transfer(self, partition_id, snapshot):
+        """Stage a snapshot without changing live server state."""
+
+        if not isinstance(partition_id, str) or not partition_id:
+            raise ValueError("Invalid destination partition ID")
+
+        begin = snapshot["begin"]
+        end = snapshot["end"]
+
+        if (
+            type(begin) is not int
+            or type(end) is not int
+            or not 0 <= begin < end <= KEY_SPACE_END
+        ):
+            raise ValueError("Invalid transfer interval")
+
+        weights, clocks, completed = self._copy_transfer_data(
+            snapshot, begin, end
+        )
+
+        with self.lock:
+            if self._incoming_transfer is not None:
+                raise RuntimeError(
+                    "An incoming transfer is already staged"
+                )
+
+            if partition_id in self.range_clocks:
+                raise ValueError("Partition ID already exists")
+
+            if any(begin <= key < end for key in self.weights):
+                raise ValueError(
+                    "Destination already holds these keys"
+                )
+
+            if any(
+                task_id in self.task_states
+                or task_id in self.completed_pushes
+                for task_id in completed
+            ):
+                raise ValueError("Destination Task ID collision")
+
+            self._incoming_transfer = {
+                "partition_id": partition_id,
+                "begin": begin,
+                "end": end,
+                "weights": weights,
+                "clocks": clocks,
+                "completed": completed,
+                "caught_up": False,
+            }
+
+    def apply_incoming_delta(self, delta):
+        """Apply final changes after the source has been frozen."""
+
+        with self.lock:
+            stage = self._incoming_transfer
+
+            if stage is None:
+                raise RuntimeError("No staged incoming transfer")
+
+            weights, clocks, completed = self._copy_transfer_data(
+                delta,
+                stage["begin"],
+                stage["end"],
+            )
+
+            for task_id in completed:
+                if (
+                    task_id in self.task_states
+                    or task_id in self.completed_pushes
+                ):
+                    raise ValueError("Destination Task ID collision")
+
+                if task_id in stage["completed"]:
+                    raise ValueError("Duplicate transferred Task ID")
+
+            # Changed parameter values replace their snapshot values.
+            stage["weights"].update(weights)
+
+            # The delta contains the latest complete clock snapshot.
+            stage["clocks"] = clocks
+
+            # Preserve successful Push history for deduplication.
+            stage["completed"].update(completed)
+
+            stage["caught_up"] = True
+
+    def install_incoming_transfer(self):
+        """Install fully caught-up data before changing ownership."""
+
+        with self.task_condition:
+            stage = self._incoming_transfer
+
+            if stage is None:
+                raise RuntimeError("No staged incoming transfer")
+
+            if not stage["caught_up"]:
+                raise RuntimeError(
+                    "Final transfer changes not applied"
+                )
+
+            begin = stage["begin"]
+            end = stage["end"]
+
+            if stage["partition_id"] in self.range_clocks:
+                raise ValueError("Partition already installed")
+
+            if any(begin <= key < end for key in self.weights):
+                raise ValueError("Destination has conflicting keys")
+
+            if any(
+                task_id in self.task_states
+                or task_id in self.completed_pushes
+                for task_id in stage["completed"]
+            ):
+                raise ValueError(
+                    "Destination has conflicting Task IDs"
+                )
+
+            # Install everything under the existing server lock.
+            self.weights.update(stage["weights"])
+
+            self.range_clocks[
+                stage["partition_id"]
+            ] = stage["clocks"]
+
+            for task_id, (fingerprint, bounds) in (
+                stage["completed"].items()
+            ):
+                self.completed_pushes[task_id] = fingerprint
+                self.completed_push_bounds[task_id] = bounds
+                self.task_states[task_id] = "DONE"
+
+            self._incoming_transfer = None
+            self.task_condition.notify_all()
+
+    def cancel_incoming_transfer(self):
+        """Discard staging without modifying live server state."""
+
+        with self.lock:
+            if self._incoming_transfer is None:
+                raise RuntimeError("No staged incoming transfer")
+
+            self._incoming_transfer = None
 
     def _check_ownership(self, keys, context):
         """Reject requests containing keys owned elsewhere."""
@@ -628,6 +1095,8 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         )
 
         with self.lock:
+            self._wait_for_transfer(keys)
+
             # Check whether this task has already completed.
             if task_key is not None:
                 previous = self.completed_pushes.get(task_key)
@@ -719,16 +1188,42 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                     f"Update rule failed: {type(error).__name__}"
                 )
 
-            # COMMIT PHASE:
-            # Only reached when ALL calculations have succeeded.
+            # COMMIT PHASE: atomic weights, clocks and migration metadata.
             self.weights.update(prepared_updates)
             self.range_clocks.update(prepared_clocks)
-            self.task_condition.notify_all()
 
-
-            # Record the completed operation while still locked.
             if task_key is not None:
                 self.completed_pushes[task_key] = fingerprint
+
+                if isinstance(keys, range):
+                    bounds = (keys.start, keys.stop)
+                elif keys:
+                    bounds = (min(keys), max(keys) + 1)
+                else:
+                    bounds = (0, 0)
+
+                self.completed_push_bounds[task_key] = bounds
+
+                # The RPC handler will also mark DONE; recording it here
+                # makes transfer snapshots consistent with the Push commit.
+                self.task_states[task_key] = "DONE"
+
+            transfer = self._transfer
+            if transfer is not None:
+                begin = transfer["begin"]
+                end = transfer["end"]
+
+                dirty = {
+                    key for key in prepared_updates
+                    if begin <= key < end
+                }
+
+                if dirty:
+                    transfer["dirty_keys"].update(dirty)
+                    if task_key is not None:
+                        transfer["new_pushes"].add(task_key)
+
+            self.task_condition.notify_all()
 
             response = pb.PushResponse(accepted=True)
             self._attach_clock_segments(response, keys)
@@ -747,6 +1242,7 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         )
 
         with self.lock:
+            self._wait_for_transfer(keys)
             self._check_ownership(keys, context)
             self._register_key_cache(request, keys, context)
 

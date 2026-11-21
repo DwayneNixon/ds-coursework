@@ -8,6 +8,11 @@ service OwnershipManager {
 
     rpc CompleteIteration(CompleteIterationRequest)
         returns (CompleteIterationReply);
+
+    // Part E3: dynamic worker membership.
+    rpc JoinWorker(JoinWorkerRequest) returns (JoinWorkerReply);
+
+    rpc LeaveWorker(LeaveWorkerRequest) returns (LeaveWorkerReply);
 }
 
 message GetMapRequest {}
@@ -25,9 +30,12 @@ message GetMapReply {
     repeated PartitionInfo partitions = 2;
 }
 
-
 message CanStartRequest {
     uint64 iteration = 1;
+
+    // Optional preserves older Part C requests.
+    // Presence matters because worker ID zero is valid.
+    optional uint32 worker_id = 2;
 }
 
 message CanStartReply {
@@ -42,4 +50,22 @@ message CompleteIterationRequest {
 
 message CompleteIterationReply {
     uint64 completed_iteration = 1;
+}
+
+message JoinWorkerRequest {
+    uint32 worker_id = 1;
+}
+
+message JoinWorkerReply {
+    uint64 starting_iteration = 1;
+    uint64 membership_epoch = 2;
+}
+
+message LeaveWorkerRequest {
+    uint32 worker_id = 1;
+}
+
+message LeaveWorkerReply {
+    uint64 completed_iteration = 1;
+    uint64 membership_epoch = 2;
 }

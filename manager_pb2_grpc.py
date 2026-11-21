@@ -49,6 +49,16 @@ class OwnershipManagerStub:
                 request_serializer=manager__pb2.CompleteIterationRequest.SerializeToString,
                 response_deserializer=manager__pb2.CompleteIterationReply.FromString,
                 _registered_method=True)
+        self.JoinWorker = channel.unary_unary(
+                '/OwnershipManager/JoinWorker',
+                request_serializer=manager__pb2.JoinWorkerRequest.SerializeToString,
+                response_deserializer=manager__pb2.JoinWorkerReply.FromString,
+                _registered_method=True)
+        self.LeaveWorker = channel.unary_unary(
+                '/OwnershipManager/LeaveWorker',
+                request_serializer=manager__pb2.LeaveWorkerRequest.SerializeToString,
+                response_deserializer=manager__pb2.LeaveWorkerReply.FromString,
+                _registered_method=True)
 
 
 class OwnershipManagerServicer:
@@ -72,6 +82,19 @@ class OwnershipManagerServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def JoinWorker(self, request, context):
+        """Part E3: dynamic worker membership.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def LeaveWorker(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_OwnershipManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -89,6 +112,16 @@ def add_OwnershipManagerServicer_to_server(servicer, server):
                     servicer.CompleteIteration,
                     request_deserializer=manager__pb2.CompleteIterationRequest.FromString,
                     response_serializer=manager__pb2.CompleteIterationReply.SerializeToString,
+            ),
+            'JoinWorker': grpc.unary_unary_rpc_method_handler(
+                    servicer.JoinWorker,
+                    request_deserializer=manager__pb2.JoinWorkerRequest.FromString,
+                    response_serializer=manager__pb2.JoinWorkerReply.SerializeToString,
+            ),
+            'LeaveWorker': grpc.unary_unary_rpc_method_handler(
+                    servicer.LeaveWorker,
+                    request_deserializer=manager__pb2.LeaveWorkerRequest.FromString,
+                    response_serializer=manager__pb2.LeaveWorkerReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -172,6 +205,60 @@ class OwnershipManager:
             '/OwnershipManager/CompleteIteration',
             manager__pb2.CompleteIterationRequest.SerializeToString,
             manager__pb2.CompleteIterationReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def JoinWorker(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/OwnershipManager/JoinWorker',
+            manager__pb2.JoinWorkerRequest.SerializeToString,
+            manager__pb2.JoinWorkerReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def LeaveWorker(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/OwnershipManager/LeaveWorker',
+            manager__pb2.LeaveWorkerRequest.SerializeToString,
+            manager__pb2.LeaveWorkerReply.FromString,
             options,
             channel_credentials,
             insecure,

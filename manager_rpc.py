@@ -44,8 +44,9 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
 
         return gate
 
+    
     def CanStart(self, request, context):
-        """Check if an iteration may begin."""
+        """Check whether an iteration may begin."""
 
         gate = self._get_consistency_gate(context)
 
@@ -54,8 +55,17 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
                 request.iteration
             )
 
+            # Older Part C requests omit worker_id.
+            # New requests also validate active membership.
+            worker_id = (
+                request.worker_id
+                if request.HasField("worker_id")
+                else None
+            )
+
             allowed = gate.can_start(
-                request.iteration
+                request.iteration,
+                worker_id=worker_id,
             )
 
         except ValueError as error:
@@ -68,6 +78,7 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
             allowed=allowed,
             required_iteration=required,
         )
+
 
     def CompleteIteration(self, request, context):
         """Record a worker's completed iteration."""
@@ -89,6 +100,49 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
         return pb.CompleteIterationReply(
             completed_iteration=request.iteration,
         )
+
+    def JoinWorker(self, request, context):
+        """Register a worker joining training in progress."""
+
+        gate = self._get_consistency_gate(context)
+
+        try:
+            starting_iteration = gate.register_worker(
+                request.worker_id
+            )
+
+        except ValueError as error:
+            context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                str(error),
+            )
+
+        return pb.JoinWorkerReply(
+            starting_iteration=starting_iteration,
+            membership_epoch=gate.membership_epoch,
+        )
+
+    def LeaveWorker(self, request, context):
+        """Gracefully remove a worker from consistency barriers."""
+
+        gate = self._get_consistency_gate(context)
+
+        try:
+            completed_iteration = gate.leave_worker(
+                request.worker_id
+            )
+
+        except ValueError as error:
+            context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                str(error),
+            )
+
+        return pb.LeaveWorkerReply(
+            completed_iteration=completed_iteration,
+            membership_epoch=gate.membership_epoch,
+        )
+
 
 def fetch_ownership_map(address):
     """Retrieve and validate a manager's ownership map."""

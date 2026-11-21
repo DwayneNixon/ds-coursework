@@ -84,6 +84,8 @@ class CoordinatedClient:
         self.iteration = 1
         self._pending_push = None
         self._pending_target = None
+        self._joined_dynamically = False
+        self._left = False
         self.poll_seconds = poll_ms / 1000
         self.barrier_timeout_s = barrier_timeout_s
 
@@ -92,6 +94,54 @@ class CoordinatedClient:
             self.channel
         )
 
+
+    def join_training(self):
+        """Register a new worker and receive its starting iteration."""
+
+        if self._left or self._joined_dynamically:
+            raise RuntimeError(
+                "Worker has already joined or left training"
+            )
+
+        if self._pending_push is not None or self.iteration != 1:
+            raise RuntimeError(
+                "Cannot join after starting local training"
+            )
+
+        reply = self.manager.JoinWorker(
+            pb.JoinWorkerRequest(worker_id=self.worker_id),
+            timeout=5.0,
+        )
+
+        self.iteration = reply.starting_iteration
+        self._joined_dynamically = True
+
+        return self.iteration
+
+    def leave_training(self):
+        """Gracefully leave after the last Push was reported."""
+
+        if self._left:
+            raise RuntimeError("Worker has already left training")
+
+        if self._pending_push is not None:
+            raise RuntimeError(
+                "Finish and report the pending Push before leaving"
+            )
+
+        reply = self.manager.LeaveWorker(
+            pb.LeaveWorkerRequest(worker_id=self.worker_id),
+            timeout=5.0,
+        )
+
+        if reply.completed_iteration != self.iteration - 1:
+            raise RuntimeError(
+                "Manager and client iteration progress disagree"
+            )
+
+        self._left = True
+        return reply.completed_iteration
+
     def pull(self, target, deps=None):
         """Reuse the normal distributed Pull."""
         return self.client.pull(target, deps=deps)
@@ -99,6 +149,9 @@ class CoordinatedClient:
 
     def push(self, target, gradients, width, deps=None):
         """Submit one Push for the current iteration."""
+
+        if self._left:
+            raise RuntimeError("Worker has already left training")
 
         if self._pending_push is not None:
             raise RuntimeError(
@@ -124,6 +177,9 @@ class CoordinatedClient:
     def wait_for_turn(self, iteration):
         """Wait until the manager permits this iteration."""
 
+        if self._left:
+            raise RuntimeError("Departed worker cannot start an iteration")
+
         deadline = (
             time.monotonic() + self.barrier_timeout_s
         )
@@ -138,7 +194,10 @@ class CoordinatedClient:
                 )
 
             response = self.manager.CanStart(
-                pb.CanStartRequest(iteration=iteration),
+                pb.CanStartRequest(
+                    iteration=iteration,
+                    worker_id=self.worker_id,
+                ),
                 timeout=min(5.0, remaining),
             )
 
@@ -153,7 +212,7 @@ class CoordinatedClient:
             )
 
 
-    def iteration_finished(self, iteration):
+    def iteration_finished(self, iteration, wait_for_next=True):
         """Verify a successful Push before reporting progress."""
 
         if iteration != self.iteration:
@@ -200,9 +259,8 @@ class CoordinatedClient:
         self._pending_target = None
         self.iteration += 1
 
-        if iteration < self.total_iterations:
+        if wait_for_next and iteration < self.total_iterations:
             self.wait_for_turn(self.iteration)
-
 
     def close(self):
         self.channel.close()

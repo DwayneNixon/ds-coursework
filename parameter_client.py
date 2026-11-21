@@ -89,20 +89,28 @@ def normalize_required_clock(required_clock):
 class ParameterClient:
     """Client interface for accessing the parameter server."""
 
-    
-    def __init__(self, address="127.0.0.1:50051", worker_id=None, value_compression=False):
-
+    def __init__(
+        self,
+        address="127.0.0.1:50051",
+        worker_id=None,
+        value_compression=False,
+        task_id_allocator=None,
+    ):
         if worker_id is not None:
             if type(worker_id) is not int or not (0 <= worker_id < 2**32):
                 raise ValueError("worker_id must be a uint32 integer")
 
+        if task_id_allocator is not None and not callable(task_id_allocator):
+            raise TypeError("task_id_allocator must be callable")
+
         self.worker_id = worker_id
 
-        # Sequence numbers start at 1 for each worker.
+        # Distributed clients may share one allocator across servers.
+        # Standalone clients retain their original sequence counters.
+        self._task_id_allocator = task_id_allocator
+
         self._sequence = 0
         self._pull_sequence = 0
-
-        # Protect sequence allocation between threads.
         self._sequence_lock = threading.Lock()
 
         self._cache_lock = threading.Lock()
@@ -118,13 +126,19 @@ class ParameterClient:
         if self.worker_id is None:
             return None
 
+        # Use the shared allocator when this client belongs
+        # to a distributed worker.
+        if self._task_id_allocator is not None:
+            return self._task_id_allocator("push")
+
+        # Original standalone-client behavior.
         with self._sequence_lock:
             if self._sequence >= (1 << 63) - 1:
                 raise OverflowError("Push task sequence exhausted")
 
             self._sequence += 1
-
             return (self.worker_id, self._sequence)
+
 
 
     def _target_fields(self, target):
@@ -625,11 +639,15 @@ class ParameterClient:
         task._pull_request_bytes = request_bytes
         return task
     
+    
     def _next_pull_task_id(self):
         """Allocate Pull IDs without changing Push numbering."""
 
         if self.worker_id is None:
             return None
+
+        if self._task_id_allocator is not None:
+            return self._task_id_allocator("pull")
 
         with self._sequence_lock:
             if self._pull_sequence >= (1 << 63) - 1:

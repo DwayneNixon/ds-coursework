@@ -298,7 +298,12 @@ class DistributedParameterClient:
         self.value_compression = value_compression
         self.manager_address = None
         self._required_clock = dict(required_clock or {})
-        
+
+        # One Task-ID sequence per logical distributed worker.
+        # All server connections share these counters.
+        self._id_lock = threading.Lock()
+        self._push_sequence = 0
+        self._pull_sequence = 0
 
         # Reuse the already-tested Part A clients.
         owners = {
@@ -306,15 +311,42 @@ class DistributedParameterClient:
             for partition in routing_table.partitions
         }
 
+        
         self.clients = {
             owner: ParameterClient(
                 owner,
                 worker_id=worker_id,
                 value_compression=value_compression,
+                task_id_allocator=self._allocate_task_id,
             )
             for owner in owners
         }
 
+    def _allocate_task_id(self, operation):
+        """Allocate unique Task IDs across a worker's server connections."""
+
+        if self.worker_id is None:
+            return None
+
+        with self._id_lock:
+            if operation == "push":
+                if self._push_sequence >= (1 << 63) - 1:
+                    raise OverflowError("Push task sequence exhausted")
+
+                self._push_sequence += 1
+                sequence = self._push_sequence
+
+            elif operation == "pull":
+                if self._pull_sequence >= (1 << 63) - 1:
+                    raise OverflowError("Pull task sequence exhausted")
+
+                self._pull_sequence += 1
+                sequence = (1 << 63) + self._pull_sequence
+
+            else:
+                raise ValueError("Unknown task operation")
+
+            return (self.worker_id, sequence)
 
     def _cache_id(self, route):
         """Identify an ordered sparse key list for one ownership epoch."""
@@ -557,6 +589,7 @@ class DistributedParameterClient:
         client.manager_address = manager_address
         return client
 
+    
     def refresh_map(self):
         """Refresh the cached ownership map from the manager."""
 
@@ -580,6 +613,7 @@ class DistributedParameterClient:
             return False
 
         # Open connections to newly discovered owners.
+        # All physical clients share the distributed Task-ID allocator.
         for partition in new_table.partitions:
             owner = partition.owner
 
@@ -588,12 +622,14 @@ class DistributedParameterClient:
                     owner,
                     worker_id=self.worker_id,
                     value_compression=self.value_compression,
+                    task_id_allocator=self._allocate_task_id,
                 )
 
         # Publish the new map locally only after preparing clients.
         self.table = new_table
 
         return True
+
 
     def close(self):
         for client in self.clients.values():

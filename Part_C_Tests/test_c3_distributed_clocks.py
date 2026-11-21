@@ -60,52 +60,107 @@ def main():
             value_width=2,
         )
 
-        # 1. One iteration spanning two owners.
-        push_result = client.push(
+        # --------------------------------------------------
+        # 1. One iteration spanning two owners
+        # --------------------------------------------------
+
+        first_task = client.push(
             [10, 50],
             [10.0, 20.0, 30.0, 40.0],
             width=2,
             iteration=7,
-        ).wait(timeout_ms=5000)
+        )
+
+        push_result = first_task.wait(timeout_ms=5000)
 
         assert push_result.accepted
+
         assert clock_at(push_result, "p1", 10) == {1301: 7}
         assert clock_at(push_result, "p2", 50) == {1301: 7}
 
         print("Distributed iteration forwarding: PASS")
         print("Push clock aggregation: PASS")
 
-        # 2. Iteration 8 touches only Server 1.
-        client.push(
-            [11], [2.0, 4.0],
+        # --------------------------------------------------
+        # 2. Logical iterations versus physical Task IDs
+        # --------------------------------------------------
+
+        # Iteration 8 touches only Server 1.
+        second_task = client.push(
+            [11],
+            [2.0, 4.0],
             width=2,
             iteration=8,
-        ).wait(timeout_ms=5000)
+        )
+
+        second_result = second_task.wait(timeout_ms=5000)
+
+        assert second_result.accepted
+        assert clock_at(second_result, "p1", 11) == {1301: 8}
 
         # Iteration 9 touches both servers.
-        task = client.push(
+        third_task = client.push(
             [10, 50],
             [1.0, 2.0, 3.0, 4.0],
             width=2,
             iteration=9,
         )
 
-        result = task.wait(timeout_ms=5000)
+        result = third_task.wait(timeout_ms=5000)
 
-        sequences = {
-            route.owner: subtask.task_id[1]
-            for route, subtask in task.tasks
+        assert result.accepted
+
+        # E1.1: All physical server connections now share
+        # one Task-ID allocator for the distributed worker.
+        #
+        # Task IDs must be unique across both servers,
+        # rather than having separate per-server sequences.
+
+        all_physical_tasks = (
+            first_task.tasks
+            + second_task.tasks
+            + third_task.tasks
+        )
+
+        task_ids = [
+            subtask.task_id
+            for route, subtask in all_physical_tasks
+        ]
+
+        assert len(task_ids) == 5
+        assert all(task_id is not None for task_id in task_ids)
+
+        # Every physical task belongs to the same worker.
+        assert all(
+            worker_id == 1301
+            for worker_id, sequence in task_ids
+        )
+
+        # No two physical Pushes may share a Task ID,
+        # even when sent to different servers.
+        assert len(set(task_ids)) == len(task_ids)
+
+        # Confirm both servers received the third Push.
+        third_owners = {
+            route.owner
+            for route, subtask in third_task.tasks
         }
 
-        assert sequences[address1] == 3
-        assert sequences[address2] == 2
+        assert third_owners == {address1, address2}
 
+        print("Cluster-wide unique Push Task IDs: PASS")
+
+        # Clock counters reflect logical iterations,
+        # not the physical Task-ID sequence.
         assert clock_at(result, "p1", 10) == {1301: 9}
         assert clock_at(result, "p2", 50) == {1301: 9}
 
         print("Logical iterations independent of shard IDs: PASS")
 
-        # 3. A distributed Pull also exposes both clocks.
+        # --------------------------------------------------
+        # 3. Distributed Pull values and clocks
+        # --------------------------------------------------
+
         pull_result = client.pull(
             [10, 50]
         ).wait(timeout_ms=5000)
@@ -124,20 +179,55 @@ def main():
 
         print("Distributed Pull values and clocks: PASS")
 
-        # 4. Existing callers can omit iteration.
+        # --------------------------------------------------
+        # 4. Legacy Push without explicit iteration
+        # --------------------------------------------------
+
+        # Existing callers can still omit iteration.
         legacy = client.push(
-            [12], [5.0, 5.0],
+            [12],
+            [5.0, 5.0],
             width=2,
         )
 
         legacy_result = legacy.wait(timeout_ms=5000)
 
+        assert legacy_result.accepted
+
+        # The logical distributed Task has no physical ID.
         assert legacy.task_id is None
-        assert clock_at(legacy_result, "p1", 12) == {1301: 4}
+
+        # There is one physical Push because only one
+        # server owns key 12.
+        assert len(legacy.tasks) == 1
+
+        legacy_route, legacy_subtask = legacy.tasks[0]
+
+        assert legacy_route.owner == address1
+        assert legacy_subtask.task_id is not None
+
+        worker_id, sequence = legacy_subtask.task_id
+
+        assert worker_id == 1301
+
+        # Without an explicit iteration, server.py uses
+        # the physical Task-ID sequence as its clock counter.
+        #
+        # This sequence is now shared across all servers,
+        # so we must not hardcode the old per-server value.
+        assert clock_at(
+            legacy_result, "p1", 12
+        ) == {1301: sequence}
+
+        # The legacy Push also receives a unique ID.
+        assert legacy_subtask.task_id not in set(task_ids)
 
         print("Distributed legacy fallback: PASS")
 
-        # 5. Invalid metadata is rejected before dispatch.
+        # --------------------------------------------------
+        # 5. Invalid iteration metadata
+        # --------------------------------------------------
+
         before = list(
             client.pull([10, 50]).wait(
                 timeout_ms=5000
@@ -167,6 +257,11 @@ def main():
         assert before == after
 
         print("Invalid iteration safely rejected: PASS")
+
+        # --------------------------------------------------
+        # Final result
+        # --------------------------------------------------
+
         print("C3.3B2 distributed clocks: PASS")
 
     finally:

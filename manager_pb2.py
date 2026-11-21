@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rmanager.proto\"\x0f\n\rGetMapRequest\"m\n\rPartitionInfo\x12\x14\n\x0cpartition_id\x18\x01 \x01(\t\x12\r\n\x05\x62\x65gin\x18\x02 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x03 \x01(\x04\x12\x1b\n\x13\x65nd_is_keyspace_end\x18\x04 \x01(\x08\x12\r\n\x05owner\x18\x05 \x01(\t\"@\n\x0bGetMapReply\x12\r\n\x05\x65poch\x18\x01 \x01(\x04\x12\"\n\npartitions\x18\x02 \x03(\x0b\x32\x0e.PartitionInfo\"$\n\x0f\x43\x61nStartRequest\x12\x11\n\titeration\x18\x01 \x01(\x04\"<\n\rCanStartReply\x12\x0f\n\x07\x61llowed\x18\x01 \x01(\x08\x12\x1a\n\x12required_iteration\x18\x02 \x01(\x04\"@\n\x18\x43ompleteIterationRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x11\n\titeration\x18\x02 \x01(\x04\"5\n\x16\x43ompleteIterationReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\x32\xb1\x01\n\x10OwnershipManager\x12&\n\x06GetMap\x12\x0e.GetMapRequest\x1a\x0c.GetMapReply\x12,\n\x08\x43\x61nStart\x12\x10.CanStartRequest\x1a\x0e.CanStartReply\x12G\n\x11\x43ompleteIteration\x12\x19.CompleteIterationRequest\x1a\x17.CompleteIterationReplyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rmanager.proto\"\x0f\n\rGetMapRequest\"m\n\rPartitionInfo\x12\x14\n\x0cpartition_id\x18\x01 \x01(\t\x12\r\n\x05\x62\x65gin\x18\x02 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x03 \x01(\x04\x12\x1b\n\x13\x65nd_is_keyspace_end\x18\x04 \x01(\x08\x12\r\n\x05owner\x18\x05 \x01(\t\"@\n\x0bGetMapReply\x12\r\n\x05\x65poch\x18\x01 \x01(\x04\x12\"\n\npartitions\x18\x02 \x03(\x0b\x32\x0e.PartitionInfo\"J\n\x0f\x43\x61nStartRequest\x12\x11\n\titeration\x18\x01 \x01(\x04\x12\x16\n\tworker_id\x18\x02 \x01(\rH\x00\x88\x01\x01\x42\x0c\n\n_worker_id\"<\n\rCanStartReply\x12\x0f\n\x07\x61llowed\x18\x01 \x01(\x08\x12\x1a\n\x12required_iteration\x18\x02 \x01(\x04\"@\n\x18\x43ompleteIterationRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x11\n\titeration\x18\x02 \x01(\x04\"5\n\x16\x43ompleteIterationReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\"&\n\x11JoinWorkerRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"G\n\x0fJoinWorkerReply\x12\x1a\n\x12starting_iteration\x18\x01 \x01(\x04\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\"\'\n\x12LeaveWorkerRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"I\n\x10LeaveWorkerReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\x32\x9c\x02\n\x10OwnershipManager\x12&\n\x06GetMap\x12\x0e.GetMapRequest\x1a\x0c.GetMapReply\x12,\n\x08\x43\x61nStart\x12\x10.CanStartRequest\x1a\x0e.CanStartReply\x12G\n\x11\x43ompleteIteration\x12\x19.CompleteIterationRequest\x1a\x17.CompleteIterationReply\x12\x32\n\nJoinWorker\x12\x12.JoinWorkerRequest\x1a\x10.JoinWorkerReply\x12\x35\n\x0bLeaveWorker\x12\x13.LeaveWorkerRequest\x1a\x11.LeaveWorkerReplyb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -38,13 +38,21 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETMAPREPLY']._serialized_start=145
   _globals['_GETMAPREPLY']._serialized_end=209
   _globals['_CANSTARTREQUEST']._serialized_start=211
-  _globals['_CANSTARTREQUEST']._serialized_end=247
-  _globals['_CANSTARTREPLY']._serialized_start=249
-  _globals['_CANSTARTREPLY']._serialized_end=309
-  _globals['_COMPLETEITERATIONREQUEST']._serialized_start=311
-  _globals['_COMPLETEITERATIONREQUEST']._serialized_end=375
-  _globals['_COMPLETEITERATIONREPLY']._serialized_start=377
-  _globals['_COMPLETEITERATIONREPLY']._serialized_end=430
-  _globals['_OWNERSHIPMANAGER']._serialized_start=433
-  _globals['_OWNERSHIPMANAGER']._serialized_end=610
+  _globals['_CANSTARTREQUEST']._serialized_end=285
+  _globals['_CANSTARTREPLY']._serialized_start=287
+  _globals['_CANSTARTREPLY']._serialized_end=347
+  _globals['_COMPLETEITERATIONREQUEST']._serialized_start=349
+  _globals['_COMPLETEITERATIONREQUEST']._serialized_end=413
+  _globals['_COMPLETEITERATIONREPLY']._serialized_start=415
+  _globals['_COMPLETEITERATIONREPLY']._serialized_end=468
+  _globals['_JOINWORKERREQUEST']._serialized_start=470
+  _globals['_JOINWORKERREQUEST']._serialized_end=508
+  _globals['_JOINWORKERREPLY']._serialized_start=510
+  _globals['_JOINWORKERREPLY']._serialized_end=581
+  _globals['_LEAVEWORKERREQUEST']._serialized_start=583
+  _globals['_LEAVEWORKERREQUEST']._serialized_end=622
+  _globals['_LEAVEWORKERREPLY']._serialized_start=624
+  _globals['_LEAVEWORKERREPLY']._serialized_end=697
+  _globals['_OWNERSHIPMANAGER']._serialized_start=700
+  _globals['_OWNERSHIPMANAGER']._serialized_end=984
 # @@protoc_insertion_point(module_scope)

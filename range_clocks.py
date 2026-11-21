@@ -113,3 +113,84 @@ class RangeClocks:
         copied = RangeClocks(self.begin, self.end)
         copied._segments = self.snapshot()
         return copied
+
+    def extract(self, begin, end):
+        """Return an independent clock state for an owned subrange."""
+
+        if (
+            type(begin) is not int
+            or type(end) is not int
+            or not self.begin <= begin < end <= self.end
+        ):
+            raise ValueError("Invalid clock extraction range")
+
+        clipped = []
+
+        for left, right, clock in self._segments:
+            overlap_begin = max(left, begin)
+            overlap_end = min(right, end)
+
+            if overlap_begin < overlap_end:
+                clipped.append((
+                    overlap_begin,
+                    overlap_end,
+                    clock.copy(),
+                ))
+
+        return RangeClocks.from_segments(begin, end, clipped)
+
+    @classmethod
+    def from_segments(cls, begin, end, segments):
+        """Restore clocks from validated, complete interval segments."""
+
+        if (
+            type(begin) is not int
+            or type(end) is not int
+            or not 0 <= begin < end <= (1 << 64)
+        ):
+            raise ValueError("Invalid restored clock range")
+
+        copied = []
+        expected_begin = begin
+
+        for segment in segments:
+            if (
+                not isinstance(segment, (tuple, list))
+                or len(segment) != 3
+            ):
+                raise ValueError("Invalid clock segment")
+
+            left, right, clock = segment
+
+            if (
+                type(left) is not int
+                or type(right) is not int
+                or left != expected_begin
+                or not left < right <= end
+                or not isinstance(clock, dict)
+            ):
+                raise ValueError(
+                    "Clock segments must cover the range exactly"
+                )
+
+            for worker_id, counter in clock.items():
+                if (
+                    type(worker_id) is not int
+                    or not 0 <= worker_id < (1 << 32)
+                    or type(counter) is not int
+                    or not 1 <= counter < (1 << 64)
+                ):
+                    raise ValueError("Invalid worker clock entry")
+
+            copied.append((left, right, clock.copy()))
+            expected_begin = right
+
+        if expected_begin != end:
+            raise ValueError(
+                "Clock snapshot does not cover the range"
+            )
+
+        restored = cls(begin, end)
+        restored._segments = restored._merge_adjacent(copied)
+
+        return restored

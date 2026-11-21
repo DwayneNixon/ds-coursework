@@ -3,7 +3,7 @@ import threading
 
 
 class ConsistencyGate:
-    """Track worker progress and apply iteration delay bounds."""
+    """Track active worker progress and apply iteration delay bounds."""
 
     def __init__(self, workers, mode="sequential", tau=0):
         workers = list(workers)
@@ -23,8 +23,18 @@ class ConsistencyGate:
         self.mode = mode
         self.tau = tau
 
-        # Highest contiguous completed iteration per worker.
-        self.completed = {worker: 0 for worker in workers}
+        # Historical progress is retained even after a worker leaves.
+        self.completed = {
+            worker: 0
+            for worker in workers
+        }
+
+        # Only active workers participate in consistency barriers.
+        self.active_workers = set(workers)
+
+        # Changes whenever a worker joins or leaves.
+        self.membership_epoch = 1
+
         self.condition = threading.Condition()
 
     def required_iteration(self, iteration):
@@ -40,19 +50,35 @@ class ConsistencyGate:
         return max(0, iteration - self.tau - 1)
 
     def _allowed(self, required):
+        """Check progress of currently active workers only."""
+
         return all(
-            progress >= required
-            for progress in self.completed.values()
+            self.completed[worker] >= required
+            for worker in self.active_workers
         )
 
-    def can_start(self, iteration):
+    def can_start(self, iteration, worker_id=None):
+        """Check whether an iteration may begin.
+
+        worker_id is optional for compatibility with Part C.
+        """
+
         required = self.required_iteration(iteration)
 
         with self.condition:
+            if worker_id is not None:
+                if worker_id not in self.active_workers:
+                    raise ValueError("Unknown or inactive worker")
+
+                if iteration != self.completed[worker_id] + 1:
+                    raise ValueError(
+                        "Worker must start its next iteration"
+                    )
+
             return self._allowed(required)
 
     def wait_until_allowed(self, iteration, timeout_ms=None):
-        """Block until all required iterations have completed."""
+        """Block until all required active workers have progressed."""
 
         required = self.required_iteration(iteration)
 
@@ -79,8 +105,8 @@ class ConsistencyGate:
         """Record one successfully completed worker iteration."""
 
         with self.condition:
-            if worker_id not in self.completed:
-                raise ValueError("Unknown worker")
+            if worker_id not in self.active_workers:
+                raise ValueError("Unknown or inactive worker")
 
             if (
                 type(iteration) is not int
@@ -100,6 +126,75 @@ class ConsistencyGate:
             self.completed[worker_id] = iteration
             self.condition.notify_all()
 
+    def register_worker(self, worker_id):
+        """Join a new worker at the current coordination baseline.
+
+        Returns the first iteration the worker should execute.
+        """
+
+        if (
+            type(worker_id) is not int
+            or not 0 <= worker_id < (1 << 32)
+        ):
+            raise ValueError("Worker ID must be a uint32 integer")
+
+        with self.condition:
+            # Never reuse an ID from a departed worker.
+            # Historical vector-clock entries may still refer to it.
+            if worker_id in self.completed:
+                raise ValueError("Worker ID has already been used")
+
+            baseline = min(
+                self.completed[worker]
+                for worker in self.active_workers
+            )
+
+            self.completed[worker_id] = baseline
+            self.active_workers.add(worker_id)
+
+            self.membership_epoch += 1
+            self.condition.notify_all()
+
+            return baseline + 1
+
+    def leave_worker(self, worker_id):
+        """Remove a worker from future consistency barriers.
+
+        The caller must ensure its outstanding Push has completed.
+        """
+
+        with self.condition:
+            if worker_id not in self.active_workers:
+                raise ValueError("Unknown or inactive worker")
+
+            # Keep at least one participant in this simple model.
+            if len(self.active_workers) == 1:
+                raise ValueError(
+                    "Cannot remove the last active worker"
+                )
+
+            last_iteration = self.completed[worker_id]
+
+            self.active_workers.remove(worker_id)
+
+            # Keep the historical entry in self.completed.
+            self.membership_epoch += 1
+            self.condition.notify_all()
+
+            return last_iteration
+
     def snapshot(self):
+        """Return historical progress, including departed workers."""
+
         with self.condition:
             return dict(self.completed)
+
+    def active_snapshot(self):
+        """Return progress of currently active workers only."""
+
+        with self.condition:
+            return {
+                worker: progress
+                for worker, progress in self.completed.items()
+                if worker in self.active_workers
+            }

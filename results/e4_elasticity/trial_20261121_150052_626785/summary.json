@@ -1,0 +1,25 @@
+{
+  "initial_servers": 2,
+  "final_servers": 4,
+  "scaling_duration_s": 0.0067548,
+  "comparison_window_s": 5,
+  "total_successful_pushes": 3926,
+  "per_key_push_counts": {
+    "10": 980,
+    "4611686018427387914": 981,
+    "9223372036854775818": 982,
+    "13835058055282163722": 983
+  },
+  "before": {
+    "pushes_per_second": 325.2,
+    "median_push_latency_ms": 0.9198,
+    "p95_push_latency_ms": 2.05255
+  },
+  "after": {
+    "pushes_per_second": 326.8,
+    "median_push_latency_ms": 0.90875,
+    "p95_push_latency_ms": 1.9236349999999998
+  },
+  "correctness": "Verified by E4.1 oracle before export",
+  "limitations": "Single local run, in-process migration, four workers, successful Pushes only"
+}

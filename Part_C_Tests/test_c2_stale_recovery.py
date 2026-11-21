@@ -77,61 +77,106 @@ def main():
         assert client.table.epoch == 1
         print("Stale client map established: PASS")
 
-        # Client attempts a Push using its old routing map.
+        # --------------------------------------------------
+        # 1. Automatic stale-map Push recovery
+        # --------------------------------------------------
+
         task = client.push(
             [10, 50],
             [10.0, 20.0, 30.0, 40.0],
             width=2,
         )
 
-        try:
-            task.wait(timeout_ms=5000)
-        except grpc.RpcError as error:
-            assert error.code() == grpc.StatusCode.FAILED_PRECONDITION
-            assert error.details().startswith("NOT_OWNER:")
-        else:
-            raise AssertionError("Expected NOT_OWNER")
+        # The distributed client now handles NOT_OWNER
+        # automatically instead of exposing the error
+        # to the logical caller.
+        result = task.wait(timeout_ms=5000)
 
-        print("Stale Push rejected: PASS")
-
-        # Check the individual physical subrequests.
-        succeeded = []
-        failed = []
-
-        for route, subtask in task.tasks:
-            if subtask._future.exception() is None:
-                succeeded.append(route)
-            else:
-                failed.append(route)
-
-        assert len(succeeded) == 1
-        assert len(failed) == 1
-        assert list(succeeded[0].keys) == [10]
-        assert list(failed[0].keys) == [50]
-
-        # The successful shard has already been updated.
-        assert service1.weights[10] == [-1.0, -2.0]
-
-        # The rejected shard has not been updated.
-        assert 50 not in service2.weights
-        assert 50 not in service3.weights
-
-        print("Partial-success detection: PASS")
-
-        # Refresh the map, then retry ONLY the failed key.
-        assert client.refresh_map() is True
+        assert result.accepted
         assert client.table.epoch == 2
 
-        client.push(
-            [50],
-            [30.0, 40.0],
-            width=2,
-        ).wait(timeout_ms=5000)
+        print("Automatic stale-map Push recovery: PASS")
 
-        print("Failed shard retried on new owner: PASS")
+        # --------------------------------------------------
+        # 2. Verify physical NOT_OWNER rejection
+        # --------------------------------------------------
 
-        # Verify both keys and ensure key 10 was not
-        # accidentally updated a second time.
+        # Two original physical requests:
+        #   key 10 -> server1 (succeeds)
+        #   key 50 -> server2 (rejected)
+        #
+        # One automatic retry:
+        #   key 50 -> server3 (succeeds)
+
+        assert len(task.tasks) == 3
+
+        original_attempts = task.tasks[:2]
+        retry_attempts = task.tasks[2:]
+
+        succeeded = []
+        rejected = []
+
+        for route, subtask in original_attempts:
+            error = subtask._future.exception()
+
+            if error is None:
+                succeeded.append(route)
+            else:
+                assert isinstance(error, grpc.RpcError)
+                assert (
+                    error.code()
+                    == grpc.StatusCode.FAILED_PRECONDITION
+                )
+                assert (
+                    error.details() or ""
+                ).startswith("NOT_OWNER:")
+
+                rejected.append(route)
+
+        assert len(succeeded) == 1
+        assert len(rejected) == 1
+
+        assert list(succeeded[0].keys) == [10]
+        assert list(rejected[0].keys) == [50]
+
+        print("Physical NOT_OWNER rejection preserved: PASS")
+
+        # --------------------------------------------------
+        # 3. Verify selective retry
+        # --------------------------------------------------
+
+        # Only the rejected key should be retried.
+        # The successful key must not be resubmitted.
+
+        assert len(retry_attempts) == 1
+
+        retry_route, retry_task = retry_attempts[0]
+
+        assert retry_route.owner == address3
+        assert list(retry_route.keys) == [50]
+        assert retry_task.wait(timeout_ms=0).accepted
+
+        print("Selective rejected-shard retry: PASS")
+
+        # --------------------------------------------------
+        # 4. Verify physical server state
+        # --------------------------------------------------
+
+        # Server1 should have applied key 10 once.
+        assert service1.weights[10] == [-1.0, -2.0]
+
+        # Server2 must not apply the rejected key.
+        assert 50 not in service2.weights
+
+        # Server3 should have applied key 50 once.
+        assert service3.weights[50] == [-3.0, -4.0]
+
+        print("Correct physical server updates: PASS")
+
+        # --------------------------------------------------
+        # 5. Verify complete logical result
+        # --------------------------------------------------
+
         values = client.pull(
             [10, 50]
         ).wait(timeout_ms=5000).values
@@ -141,11 +186,23 @@ def main():
             -3.0, -4.0,
         ]
 
+        print("Distributed Pull after recovery: PASS")
+
+        # --------------------------------------------------
+        # 6. Verify no duplicated updates
+        # --------------------------------------------------
+
         assert service1.weights[10] == [-1.0, -2.0]
+        assert service3.weights[50] == [-3.0, -4.0]
         assert 50 not in service2.weights
 
         print("No duplicate successful update: PASS")
-        print("C2.4C stale recovery foundation: PASS")
+
+        # --------------------------------------------------
+        # Final result
+        # --------------------------------------------------
+
+        print("C2.4C stale recovery regression: PASS")
 
     finally:
         if client is not None:
