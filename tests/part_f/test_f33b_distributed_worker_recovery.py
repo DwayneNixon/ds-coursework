@@ -334,7 +334,7 @@ class DistributedWorkerProcessTests(unittest.TestCase):
         self.manager.start_heartbeat_monitor(interval_s=.025)
         self.processes = {}
         self.peers = {}
-        server_file = Path(__file__).resolve().parents[1] / "server.py"
+        server_file = Path(__file__).resolve().parents[2] / "server.py"
         for address in self.addresses:
             self.processes[address] = subprocess.Popen([
                 sys.executable, "-u", str(server_file),

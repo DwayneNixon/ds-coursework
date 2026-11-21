@@ -259,7 +259,7 @@ time.sleep(60)  # Simulated stalled computation; the sender remains alive.
 """
             process = subprocess.Popen(
                 [sys.executable, "-c", code, address],
-                cwd=str(Path(__file__).resolve().parents[1]),
+                cwd=str(Path(__file__).resolve().parents[2]),
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
             self.assertTrue(until(lambda:

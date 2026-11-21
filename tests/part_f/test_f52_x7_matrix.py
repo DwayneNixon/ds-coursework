@@ -6,13 +6,13 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from Part_F_Tests.f52_x7_matrix import (check_x6, make_row, read_json, validate_config,
+from experiments.f52_x7_matrix import (check_x6, make_row, read_json, validate_config,
                             write_csv)
 
 
 class MatrixEvidenceTests(unittest.TestCase):
     def setUp(self):
-        self.config = read_json(Path(__file__).with_name("f52_x7_config.json"))
+        self.config = read_json(Path(__file__).resolve().parents[2] / "configs" / "x7_fault_matrix.json")
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.dir = Path(self.temp.name)

@@ -30,7 +30,7 @@ from manager_rpc import ManagerService
 from routing import KEY_SPACE_END, Partition
 from server import ParameterServer
 from server_manager import ServerManager
-import Part_F_Tests.test_f34_migration_crash_recovery as migration_tests
+import tests.part_f.test_f34_migration_crash_recovery as migration_tests
 
 
 def until(predicate, timeout_s=5.0):
@@ -228,7 +228,7 @@ time.sleep(45)  # Alive but intentionally stalled between iterations.
 '''
             process = subprocess.Popen(
                 [sys.executable, "-c", child, manager_address],
-                cwd=str(Path(__file__).resolve().parents[1]),
+                cwd=str(Path(__file__).resolve().parents[2]),
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
             self.assertTrue(until(lambda:

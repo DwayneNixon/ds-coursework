@@ -300,7 +300,7 @@ class WorkerFailureRpcTests(unittest.TestCase):
         )
         process = subprocess.Popen(
             [sys.executable, "-c", script, address],
-            cwd=str(Path(__file__).resolve().parents[1]),
+            cwd=str(Path(__file__).resolve().parents[2]),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )

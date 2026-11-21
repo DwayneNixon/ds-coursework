@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from Part_F_Tests.f5_evidence import (
+from experiments.f5_evidence import (
     ExperimentEvidence, compare_weights, fixed_gradient_oracle,
     recovery_decomposition, throughput_recovery,
 )
