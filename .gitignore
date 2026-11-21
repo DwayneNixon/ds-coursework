@@ -18,3 +18,8 @@ venv/
 # Local-only scratch outputs (preserve committed experiment evidence)
 results/audit_x6/
 results/audit_x7/
+
+# Regenerable test and audit output; committed reference evidence stays tracked
+results/b5_*/
+results/audit_regressions/
+results/x2_scaling/servers_*/events.csv
