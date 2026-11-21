@@ -29,7 +29,7 @@ def read_log(relative_path):
     # which produces UTF-16 with a BOM; others were saved as UTF-8.
     text = (
         raw.decode("utf-16")
-        if raw.startswith((b"\\xff\\xfe", b"\\xfe\\xff"))
+        if raw.startswith((bytes.fromhex("fffe"), bytes.fromhex("feff")))
         else raw.decode("utf-8-sig")
     )
     if "Final parameter correctness: PASS" not in text:
