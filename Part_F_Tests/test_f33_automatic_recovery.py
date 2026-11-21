@@ -345,7 +345,7 @@ class AutoRecoveryProcessTests(unittest.TestCase):
         self.manager.start_heartbeat_monitor(interval_s=0.025)
         self.processes = {}
         self.peers = {}
-        server_file = Path(__file__).resolve().with_name("server.py")
+        server_file = Path(__file__).resolve().parents[1] / "server.py"
         for address in self.addresses:
             process = subprocess.Popen([
                 sys.executable, "-u", str(server_file), "--listen", address,
