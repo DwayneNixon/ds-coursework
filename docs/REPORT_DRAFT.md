@@ -1,9 +1,7 @@
-# Building a Parameter Server — informal report draft
+# Building a Parameter Server — Architecture, Evaluation and Recovery
 
 **Course:** Distributed Systems · University of Edinburgh (INFR11022)  
-**Status:** Draft for final human review, layout and ≤8-page export. Source code and the exact final-revision evidence should be checked against this text before submission.
-
-> **Pagination:** The handout limits the finished report to **eight pages**. This Markdown is a concise source draft, **not** a verified eight-page PDF. Use a diagram and plots selectively, with a caption that includes the run's seed/revision.
+**Evidence revision:** {{REVISION}} · **CI run:** {{CI_RUN}}
 
 ## 1. Aim and API
 
@@ -33,46 +31,47 @@ For fault tolerance, servers emit heartbeats, maintain ordered backup replicas a
 
 The reusable Part B worker runs a seeded `Pull → compute → Push` loop. Tests cover sparse skew, dense ranges, stragglers, 1,024-key X2 scaling, failure injection and independent target/fixed-gradient numerical oracles. B5 records timestamped operation metrics, iterations, convergence, scenario events and a JSON summary. Application bytes mean **serialized Protobuf payloads**, not full transport traffic.
 
-GitHub Actions runs each selected experiment from a clean checkout with Python 3.13 and dependencies pinned by compatible bounds. A separate workflow launches all discovered Part A–F test scripts in isolated Python processes with fresh single-server state. Include the **final passing revision SHA** and a link to its CI evidence in the submitted report.
+GitHub Actions runs each experiment from a clean checkout with Python 3.13 and compatible dependencies. A separate workflow launches every Part A–F regression script in an isolated Python process with fresh server state. The evidence revision and workflow run are recorded above. Experimental timing is host-dependent; reproducible seeds and raw CSV results are retained with the repository.
 
 ## 5. Evaluation
 
 ### X1: Is aggregation correct?
 
-In synchronous round mode, `m` workers Pull the same snapshot and all commit target-difference gradients before the next round. The analytic contraction is `||w_t−w*|| = |1−mη|^t ||w_0−w*||`. Our independent per-round oracle agreed to a maximum absolute error of approximately **4.44 × 10⁻¹⁶** for the recorded configuration. **Figure 2:** plot measured and theoretical distances from `results/x1_aggregation/oracle.csv`. The formula belongs to this controlled synchronous schedule, not arbitrary asynchronous interleavings.
+In synchronous round mode, `m` workers Pull the same snapshot and all commit target-difference gradients before the next round. The analytic contraction is `||w_t − w_target|| = |1 − mη|^t · ||w_0 − w_target||`. Our independent per-round oracle agreed to a maximum absolute error of approximately **4.44 × 10⁻¹⁶** for the recorded configuration. Figure 2 overlays the measured and theoretical contraction distances. The formula belongs to this controlled synchronous schedule, not arbitrary asynchronous interleavings.
 
 ### X2: Does server count improve throughput?
 
 With a fixed seeded workload, three trials each across **1–8 real server processes**, observed median throughput in Pushes/s was:
 
-| Servers | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Median Pushes/s | 102.4 | 188.8 | 202.3 | 169.7 | 159.9 | 137.9 | 132.5 | 115.2 |
+{{X2_TABLE}}
 
-The best measured point was three servers (**1.97×** relative to one); eight achieved **1.13×**. Increasing fan-out, reassembly and local resource contention are possible bottlenecks. **Figure 3:** `results/x2_scaling/scaling.png` compares throughput and Push p99 with server count. These localhost results do not establish multi-host scalability.
+{{X2_INTERPRETATION}}
 
 ### X3: What does relaxed consistency change?
 
-The C5 comparison ran **30 scenarios** (five modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput improved from **154/s sequential** to approximately **345/s at τ=1**, **402/s at τ=2**, **404/s at τ=4**, and **410/s eventual**. With a 60 ms straggler, all modes were near **31 Pushes/s**, indicating worker compute time dominated. Sequential observed zero iteration lag; bounded modes respected their τ setting; eventual lag reached 22 with a straggler. Convergence and final errors differed by schedule. **Figure 4:** existing `results/c5_evaluation/` convergence plots, comparing equal update counts and wall time separately.
+The C5 comparison ran **30 scenarios** (five modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput improved from **154/s sequential** to approximately **345/s at τ=1**, **402/s at τ=2**, **404/s at τ=4**, and **410/s eventual**. With a 60 ms straggler, all modes were near **31 Pushes/s**, indicating worker compute time dominated. Sequential observed zero iteration lag; bounded modes respected their τ setting; eventual lag reached 22 with a straggler. Convergence and final errors differed by schedule. Figure 4 compares convergence at equal update counts; equal elapsed time can lead to different numbers of updates.
 
 ### X4: Communication trade-offs
 
-Three-trial median comparisons showed cached key IDs saved approximately **9.65%** total payload bytes, compression **16.36%**, caching plus compression **26.01%**, and D3 batch Pulls **64.15%** (1,600→200 physical RPCs, **87.5%** fewer). **Figure 5:** `results/x4_comparison/comparison.png`. The cache/compression costs can increase Push p99; D3's p99 measures a **group of Pulls** and is not directly comparable with Push p99.
+Three-trial median comparisons showed cached key IDs saved approximately **9.65%** total payload bytes, compression **16.36%**, caching plus compression **26.01%**, and D3 batch Pulls **64.15%** (1,600→200 physical RPCs, **87.5%** fewer). Figure 5 compares application payload bytes and percentage reduction. The cache/compression costs can increase Push p99; D3's p99 measures a **group of Pulls** and is not directly comparable with Push p99.
 
 ### X5: Elasticity while training
 
-An E4 two-to-four-server transition under ongoing Push traffic preserved a final Push-count oracle across 3,926 successful updates. The latest trial measured a **0.00675s** cutover and 5-second-window throughput of **325.2 before** and **326.8 Pushes/s after**. **Figure 6:** `results/e4_elasticity/trial_20261121_150052_626785/{throughput,latency}.png`. This is an in-process migration experiment and should not be compared directly with process-isolated X2 timings.
+An E4 two-to-four-server transition under ongoing Push traffic preserved a final Push-count oracle across 3,926 successful updates. The latest trial measured a **0.00675s** cutover and 5-second-window throughput of **325.2 before** and **326.8 Pushes/s after**. Figure 6 shows the observed Push rate around the server-add transition. This is an in-process migration experiment and should not be compared directly with process-isolated X2 timings.
 
 ### X6: Crash survival and exactly-once effects
 
-In a three-server, k=1-replica configuration, a primary was killed after a worker Pull and before its Push. The recorded trial completed **718 acknowledged logical Pushes**, matched the offline fixed-gradient oracle to **9.09 × 10⁻¹³**, and measured detection **0.489s**, promotion **0.019s**, first recovered Push **2.10s** and conservative throughput restoration **3.0s**. The oracle counts logical committed updates, not raw retry attempts. This establishes the configured *single confirmed crash-stop* guarantee, **not** safety under arbitrary partitions.
+{{X6_SUMMARY}}
 
 ### X7: Failure matrix and limits
 
-The nine-case matrix includes source/destination crashes during migration staging, one partial postpublication source crash, worker death under bounded delay, delayed/dropped Pushes, a lost success reply and dropped transfer staging. Eight cases recovered or were handled within the explicit fault-injection model. One partial postpublication source failure was **EXPECTED_FAIL_CLOSED**: writes remained blocked because availability could not be recovered safely. The matrix intentionally does *not* describe this row as recovered.
+The nine-case fault matrix (below) distinguishes recovered or explicitly handled failures from safety-preserving unavailability.
+
+{{X7_TABLE}}
+
+The postpublication source-crash case is **EXPECTED_FAIL_CLOSED**: writes can remain blocked because safe availability cannot be established. This is not automatic recovery and does not establish partition tolerance.
 
 ## 6. Conclusion
 
 The project demonstrates a parameter server with asynchronous Push/Pull, partition routing, range clocks, selectable consistency, measured communication optimisations, a live elasticity path, and tested single-crash replication/promotion. Numerical oracles and fault trials provide evidence for the supported configurations. Its main limitations are single-manager dependency, no cross-shard transactions, predominantly in-memory state, in-process E4 migration, and the stated fail-closed postpublication case. The controlled X2 study also shows that adding local servers need not improve throughput monotonically.
 
-**Before submission:** replace figure references with actual labeled images, cite the final CI SHA, verify raw outputs and report pagination, and clearly state any changes between the historical measurements and the final tested commit.
