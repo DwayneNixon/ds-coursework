@@ -33,7 +33,7 @@ A previous full clean-checkout audit found 94/97 scripts passing. Its three fail
 ## Automated verification
 
 - `.github/workflows/audit-smoke.yml` runs imports/syntax, targeted A/B/C/E/F tests, X1/X2, D3/X4, live X6 and X7. It uploads raw evidence even if an experiment fails. Successful CI for a prior commit does not prove current head.
-- `.github/workflows/audit-full.yml` runs all discovered A–F test scripts (approximately 97). It uploads the individual script logs and `summary.json`. The suite is slower because E4 and F tests spawn processes and exercise timeouts.
+- `.github/workflows/audit-full.yml` runs all discovered A–F test scripts (approximately 98). It uploads the individual script logs and `summary.json`. The suite is slower because E4 and F tests spawn processes and exercise timeouts.
 - Use the GitHub Actions run for **the exact PR head SHA** when reporting PASS or reproducing performance values.
 
 ## Focused commands
@@ -43,6 +43,7 @@ python -m Part_A_Tests.test_request_limits
 python -m Part_A_Tests.test_server_dependencies
 python -m Part_A_Tests.test_rule_registration
 python -m Part_B_Tests.test_b2_worker_dense_range
+python -m Part_B_Tests.test_b2_million_key_distributed
 python -m Part_C_Tests.test_c1_worker_harness
 python -m Part_E_Tests.test_e12_source_transfer
 python -m unittest -v Part_F_Tests.test_f31_replica_promotion
