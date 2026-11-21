@@ -58,8 +58,8 @@ def insert_verified_results(source):
     best_i = max(range(8), key=lambda i: medians[i])
     counts = [str(row["servers"]) for row in data]
     table = (
-        "| Servers | " + " | ".join(counts) + " |\\n"
-        + "|---|" + "---:|" * 8 + "\\n"
+        "| Servers | " + " | ".join(counts) + " |\n"
+        + "|---|" + "---:|" * 8 + "\n"
         + "| Median Pushes/s | "
         + " | ".join(f"{value:.1f}" for value in medians) + " |"
     )
@@ -126,13 +126,13 @@ def insert_verified_results(source):
         "{{X2_TABLE}}": table,
         "{{X2_INTERPRETATION}}": comment,
         "{{X6_SUMMARY}}": x6text,
-        "{{X7_TABLE}}": "\\n".join(rows),
+        "{{X7_TABLE}}": "\n".join(rows),
     }
     for token, value in replacements.items():
         if token not in source:
             raise ValueError(f"Report template is missing token {token}")
         source = source.replace(token, value)
-    if re.search(r"\\{\\{[A-Z0-9_]+\\}\\}", source):
+    if re.search(r"\{\{[A-Z0-9_]+\}\}", source):
         raise ValueError("Unresolved report placeholder")
     return source
 
