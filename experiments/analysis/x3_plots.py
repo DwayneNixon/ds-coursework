@@ -4,6 +4,8 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import median
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 

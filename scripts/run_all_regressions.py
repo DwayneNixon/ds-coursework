@@ -97,10 +97,10 @@ def main():
     paths = sorted(
         p
         for letter in (args.part,) if args.part is not None
-        for p in (ROOT / f"Part_{letter}_Tests").glob("test_*.py")
+        for p in (ROOT / "tests" / f"part_{letter.lower()}").glob("test_*.py")
     ) if args.part else sorted(
         p for letter in "ABCDEF"
-        for p in (ROOT / f"Part_{letter}_Tests").glob("test_*.py")
+        for p in (ROOT / "tests" / f"part_{letter.lower()}").glob("test_*.py")
     )
     if not paths:
         raise RuntimeError("No test files discovered")

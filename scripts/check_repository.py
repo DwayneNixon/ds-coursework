@@ -21,7 +21,8 @@ def main():
         "experiments/x1_aggregation.py", "experiments/x2_scaling.py",
         "experiments/x3_consistency.py", "experiments/x4_comparison.py",
         "experiments/x5_elasticity.py", "experiments/x6_failover.py",
-        "experiments/x7_failures.py",
+        "experiments/x7_failures.py", "harness/local_servers.py",
+        "tests/part_a/test_async.py", "tests/part_f/test_f51_evidence.py",
         "docs/ARCHITECTURE.md", "docs/EXPERIMENTS.md",
         "docs/TESTING.md", "docs/REQUIREMENTS_AUDIT.md",
         "docs/REPORT_DRAFT.md", "docs/DEMO.md",
@@ -30,13 +31,13 @@ def main():
         ".github/workflows/audit-full.yml",
         "configs/x1_aggregation.json", "configs/x2_scaling.json",
         "configs/x4_comparison.json",
+        "configs/x6_failover.json", "configs/x7_fault_matrix.json",
     ]
     errors = [
         f"Missing required repository path: {path}"
         for path in expected if not (ROOT / path).exists()
     ]
     markdown_files = [ROOT / "README.md"] + list((ROOT / "docs").glob("*.md"))
-    markdown_files += list(ROOT.glob("Part_*_README.md"))
     local_link_count = 0
     for source in markdown_files:
         content = source.read_text(encoding="utf-8")
@@ -54,13 +55,13 @@ def main():
                 errors.append(
                     f"Broken Markdown link in {source.relative_to(ROOT)}: {bare}"
                 )
-    for path in (*ROOT.glob("configs/*.json"), *ROOT.glob("Part_F_Tests/*config.json")):
+    for path in ROOT.glob("configs/*.json"):
         try:
             json.loads(path.read_text(encoding="utf-8"))
         except (ValueError, OSError) as error:
             errors.append(f"Invalid JSON {path.relative_to(ROOT)}: {error}")
     for part in "ABCDEF":
-        if not list((ROOT / f"Part_{part}_Tests").glob("test_*.py")):
+        if not list((ROOT / "tests" / f"part_{part.lower()}").glob("test_*.py")):
             errors.append(f"Missing test scripts for part {part}")
     if errors:
         print("\n".join(errors))

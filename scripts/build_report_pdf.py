@@ -33,8 +33,8 @@ def insert_verified_results(source):
 
     x1 = read_json("results/x1_aggregation/summary.json")
     x2 = read_json("results/x2_scaling/summary.json")
-    x6 = read_json("results/audit_x6/summary.json")
-    x7 = read_json("results/audit_x7/summary.json")
+    x6 = read_json("results/x6_failover/summary.json")
+    x7 = read_json("results/x7_fault_matrix/summary.json")
     if not x1.get("oracle_matches"):
         raise ValueError("X1 analytic oracle did not pass")
     if x2.get("server_counts") != list(range(1, 9)):

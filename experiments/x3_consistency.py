@@ -419,6 +419,9 @@ def main():
     print("Output: results/c5_evaluation/summary.csv")
     print("Output: results/c5_evaluation/convergence.csv")
 
+    from experiments.analysis.x3_plots import main as plot_consistency
+    plot_consistency()
+
 
 if __name__ == "__main__":
     main()

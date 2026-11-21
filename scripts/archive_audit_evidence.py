@@ -18,7 +18,7 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 GROUPS = (
     "x1_aggregation", "x2_scaling", "c5_evaluation",
-    "d3_benchmark", "x4_comparison", "audit_x6", "audit_x7",
+    "d3_benchmark", "x4_comparison", "x6_failover", "x7_fault_matrix",
 )
 
 
@@ -33,8 +33,8 @@ def validate():
     x1 = read_json("results/x1_aggregation/summary.json")
     x2 = read_json("results/x2_scaling/summary.json")
     x4 = read_json("results/x4_comparison/summary.json")
-    x6 = read_json("results/audit_x6/summary.json")
-    x7 = read_json("results/audit_x7/summary.json")
+    x6 = read_json("results/x6_failover/summary.json")
+    x7 = read_json("results/x7_fault_matrix/summary.json")
 
     if x1.get("oracle_matches") is not True:
         raise AssertionError("X1 independent mathematical oracle did not pass")

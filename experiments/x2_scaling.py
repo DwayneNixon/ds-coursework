@@ -24,7 +24,7 @@ import grpc
 import manager_pb2_grpc as manager_grpc
 from distributed_client import DistributedParameterClient
 from harness.metrics import (make_summary, write_ops_csv, write_iterations_csv,
-                             write_convergence_csv, write_events_csv, write_summary_json)
+                             write_convergence_csv, write_summary_json)
 from harness.observer import ConvergenceObserver
 from harness.oracle import TargetVector
 from harness.worker import run_worker, sample_keys
@@ -189,7 +189,6 @@ def run_trial(cfg, count, seed, root):
             write_ops_csv(operations, output)
             write_iterations_csv(iteration_rows, output)
             write_convergence_csv(observer.records, output)
-            write_events_csv([], output)
             row = {
                 "servers": count, "seed": seed,
                 "num_keys": num_keys,
