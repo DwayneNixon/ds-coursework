@@ -1,6 +1,6 @@
-"""Generate a readable, <=8-page draft PDF from docs/REPORT_DRAFT.md.
+"""Generate an <=8-page evidence-backed report PDF from docs/REPORT_DRAFT.md.
 
-Run from repo root AFTER X1, X2 and X4:
+Run from repo root AFTER X1–X4 and the X6/X7 fault experiments:
     python -m pip install -r requirements-report.txt
     python -m scripts.build_report_pdf
 
@@ -10,11 +10,132 @@ The recorded video still has to be made by the student.
 import argparse
 import csv
 import html
+import json
+import os
 import re
+import subprocess
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def insert_verified_results(source):
+    """Load results from one checkout, not stale values copied into prose."""
+    def read_json(relative):
+        path = ROOT / relative
+        if not path.is_file():
+            raise FileNotFoundError(
+                f"Required final report evidence is missing: {path}"
+            )
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    x1 = read_json("results/x1_aggregation/summary.json")
+    x2 = read_json("results/x2_scaling/summary.json")
+    x6 = read_json("results/audit_x6/summary.json")
+    x7 = read_json("results/audit_x7/summary.json")
+    if not x1.get("oracle_matches"):
+        raise ValueError("X1 analytic oracle did not pass")
+    if x2.get("server_counts") != list(range(1, 9)):
+        raise ValueError("X2 does not contain the required 1–8 server sweep")
+    data = sorted(x2["aggregate"], key=lambda row: row["servers"])
+    if len(data) != 8 or any(row["trials"] < 3 for row in data):
+        raise ValueError("X2 requires three trials for each server count")
+    if not x6.get("offline_oracle", {}).get("matches"):
+        raise ValueError("X6 independent offline oracle did not pass")
+    if x7.get("status") != "PASS" or len(x7.get("cases", [])) != 9:
+        raise ValueError("X7 complete nine-case matrix is not passing")
+
+    try:
+        revision = os.environ.get("GITHUB_SHA") or subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        revision = "local checkout"
+    run_id = os.environ.get("GITHUB_RUN_ID") or "local build"
+
+    medians = [row["throughput_median"] for row in data]
+    best_i = max(range(8), key=lambda i: medians[i])
+    counts = [str(row["servers"]) for row in data]
+    table = (
+        "| Servers | " + " | ".join(counts) + " |\\n"
+        + "|---|" + "---:|" * 8 + "\\n"
+        + "| Median Pushes/s | "
+        + " | ".join(f"{value:.1f}" for value in medians) + " |"
+    )
+    comment = (
+        f"The highest measured throughput was at **{counts[best_i]} servers** "
+        f"({medians[best_i]:.1f} Pushes/s, **{medians[best_i]/medians[0]:.2f}×** "
+        "the one-server baseline); eight servers achieved "
+        f"**{medians[-1]/medians[0]:.2f}×**. "
+        "The performance is non-monotonic: increased RPC fan-out, result "
+        "reassembly and contention on a shared localhost host are plausible "
+        "causes, not individually established bottlenecks. Figure 3 displays "
+        "both throughput and Push p99 latency for these same trials. "
+        "These results do not imply multi-host scale-out."
+    )
+
+    timing = x6["recovery_times"]
+    decomposition = timing["decomposition"]
+    conservative = timing["throughput"]["postfault_only_recovery_s"]
+    x6text = (
+        "In the process-separated three-server, k=1-replica experiment, "
+        "a primary was killed after Pull and before Push. The measured trial "
+        f"completed **{x6['completed_pushes']} acknowledged logical Pushes** "
+        "and matched the independent fixed-gradient oracle with a maximum "
+        f"absolute error of **{x6['offline_oracle']['max_absolute_error']:.2e}**. "
+        f"Detection took **{decomposition['T_detect_s']:.3f}s**, promotion "
+        f"**{decomposition['T_promote_s']:.3f}s**, and the first recovered Push "
+        f"occurred **{decomposition['T_rec_first_push_s']:.3f}s** after the fault. "
+        "A conservative postfault-only 90% throughput recovery diagnostic "
+        f"was **{conservative:.1f}s**. These values are from the CI run "
+        "identified above; they are not worst-case bounds. The oracle counts "
+        "acknowledged logical updates rather than repeated RPC attempts. "
+        "The demonstrated guarantee is one confirmed crash-stop with a "
+        "surviving replica and live manager, not arbitrary network partitions."
+    )
+
+    labels = {
+        "x6_primary_mid_iteration": "Primary crash mid-iteration",
+        "migration_source_during_staging": "Migration source crash (staging)",
+        "migration_destination_during_staging": "Migration destination crash (staging)",
+        "migration_partial_postpublication": "Partial postpublication migration",
+        "worker_bounded_crash": "Worker crash (bounded delay)",
+        "delayed_push_request": "Delayed Push request",
+        "dropped_push_request": "Dropped Push request",
+        "dropped_push_ack": "Lost Push acknowledgment",
+        "dropped_transfer_stage": "Dropped transfer staging",
+    }
+    rows = ["| Failure injection | Observed outcome |", "|---|---|"]
+    for item in x7["cases"]:
+        case_id = item["case_id"]
+        outcome = item["result"]
+        if case_id not in labels or outcome not in ("PASS", "EXPECTED_FAIL_CLOSED"):
+            raise ValueError(f"Unknown X7 result: {case_id} / {outcome}")
+        rows.append(
+            f"| {labels[case_id]} | "
+            + ("Safe refusal (fail-closed)" if outcome == "EXPECTED_FAIL_CLOSED"
+               else "Recovered / handled") + " |"
+        )
+    if sum(item["result"] == "EXPECTED_FAIL_CLOSED" for item in x7["cases"]) != 1:
+        raise ValueError("X7 must retain its one documented fail-closed case")
+
+    replacements = {
+        "{{REVISION}}": revision[:12],
+        "{{CI_RUN}}": run_id,
+        "{{X2_TABLE}}": table,
+        "{{X2_INTERPRETATION}}": comment,
+        "{{X6_SUMMARY}}": x6text,
+        "{{X7_TABLE}}": "\\n".join(rows),
+    }
+    for token, value in replacements.items():
+        if token not in source:
+            raise ValueError(f"Report template is missing token {token}")
+        source = source.replace(token, value)
+    if re.search(r"\\{\\{[A-Z0-9_]+\\}\\}", source):
+        raise ValueError("Unresolved report placeholder")
+    return source
+
 
 
 def make_x1_plot(root, destination):
@@ -281,7 +402,7 @@ def main():
     parser.add_argument("--source",default=str(ROOT/"docs/REPORT_DRAFT.md"))
     parser.add_argument("--output",default=str(ROOT/"submission/parameter_server_report.pdf"))
     args=parser.parse_args()
-    source=Path(args.source).read_text(encoding="utf-8")
+    source=insert_verified_results(Path(args.source).read_text(encoding="utf-8"))
     output=Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="ds_report_") as scratch:
