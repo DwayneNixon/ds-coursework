@@ -1,3 +1,4 @@
+from harness.local_servers import clock_counter
 
 import threading
 import time
@@ -8,7 +9,7 @@ from math import isclose
 
 import manager_pb2_grpc as manager_grpc
 
-from Part_C_Tests.test_c2_server_ownership import make_server
+from harness.local_servers import make_server
 from server_manager import ServerManager
 from manager_rpc import ManagerService
 
@@ -26,36 +27,6 @@ NUM_KEYS = 8
 WIDTH = 2
 SLOW_WORKER_MS = 200
 
-
-def clock_counter(response, key, worker_id):
-    """Read one worker's clock counter for a particular key."""
-
-    matches = []
-
-    for segment in response.clocks:
-        end = (
-            KEY_SPACE_END
-            if segment.end_is_keyspace_end
-            else segment.end
-        )
-
-        if segment.begin <= key < end:
-            counter = next(
-                (
-                    entry.counter
-                    for entry in segment.entries
-                    if entry.worker_id == worker_id
-                ),
-                0,
-            )
-
-            matches.append(counter)
-
-    assert len(matches) == 1, (
-        f"Expected one clock segment covering key {key}"
-    )
-
-    return matches[0]
 
 
 def run_mode(mode, tau=0):

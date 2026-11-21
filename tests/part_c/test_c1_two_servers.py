@@ -1,3 +1,4 @@
+from harness.local_servers import start_server
 
 import grpc
 from concurrent import futures
@@ -6,26 +7,6 @@ from server import ParameterServer
 from parameter_client import ParameterClient
 import parameter_server_pb2_grpc
 
-
-def start_server():
-    # Create an independent gRPC server instance.
-    grpc_server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=4)
-    )
-
-    parameter_server_pb2_grpc.add_ParameterServerServicer_to_server(
-        ParameterServer(value_width=2),
-        grpc_server,
-    )
-
-    # Port 0 asks the OS to allocate a free local port.
-    port = grpc_server.add_insecure_port("127.0.0.1:0")
-
-    if port == 0:
-        raise RuntimeError("Unable to bind gRPC server")
-
-    grpc_server.start()
-    return grpc_server, f"127.0.0.1:{port}"
 
 
 def main():

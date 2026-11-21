@@ -1,3 +1,4 @@
+from harness.local_servers import make_server
 
 import grpc
 from concurrent import futures
@@ -8,22 +9,6 @@ from server import ParameterServer
 from parameter_client import ParameterClient
 from routing import Partition, RoutingTable, KEY_SPACE_END
 
-
-def make_server():
-    grpc_server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=4)
-    )
-
-    service = ParameterServer(value_width=2)
-
-    pb_grpc.add_ParameterServerServicer_to_server(
-        service, grpc_server
-    )
-
-    port = grpc_server.add_insecure_port("127.0.0.1:0")
-    assert port != 0
-
-    return grpc_server, service, f"127.0.0.1:{port}"
 
 
 def expect_not_owner(task):
