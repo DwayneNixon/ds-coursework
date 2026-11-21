@@ -228,7 +228,7 @@ time.sleep(45)  # Alive but intentionally stalled between iterations.
 '''
             process = subprocess.Popen(
                 [sys.executable, "-c", child, manager_address],
-                cwd=str(Path(__file__).resolve().parent),
+                cwd=str(Path(__file__).resolve().parents[1]),
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
             self.assertTrue(until(lambda:
