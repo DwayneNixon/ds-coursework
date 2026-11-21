@@ -1,0 +1,22 @@
+# Python cache and local test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Development environments and editor state
+.venv/
+venv/
+.env
+.env.*
+.vscode/
+.idea/
+
+# Reproducible scratch data (the reviewed report evidence is tracked)
+results/b5_*/
+results/audit_regressions/
+results/d1_baseline/
+results/e4_elasticity/trial_*/

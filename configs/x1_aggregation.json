@@ -1,0 +1,20 @@
+{
+  "experiment": "X1_analytical_aggregation",
+  "seed": 42,
+  "mode": "sequential",
+  "model": {
+    "num_keys": 16,
+    "value_width": 2
+  },
+  "workers": {
+    "ids": [
+      1101,
+      1102,
+      1103
+    ],
+    "iterations": 16,
+    "compute_ms": 0
+  },
+  "learning_rate": 0.1,
+  "output_dir": "results/x1_aggregation"
+}

@@ -1,4 +1,0 @@
-ts_ns,worker,iteration,op,n_keys,bytes_out,bytes_in,latency_ms,status,retries
-1794883907137749300,905,1,pull,2,20,40,1.7542,OK,0
-1794883907138402300,905,1,push,2,63,2,0.4806,OK,0
-1794883907138900100,905,2,pull,2,27,40,0.4505,OK,0

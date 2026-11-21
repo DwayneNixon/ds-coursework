@@ -1,0 +1,43 @@
+name: Full Part A–F regression audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - audit/fix-runner-paths
+    paths:
+      - scripts/run_all_regressions.py
+      - .github/workflows/audit-full.yml
+      - server.py
+      - tests/**
+      - harness/**
+      - experiments/**
+      - configs/**
+      - ds/**
+
+concurrency:
+  group: audit-full-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Run each A–F test against fresh server state
+        run: |
+          python -m scripts.run_all_regressions --timeout 140
+      - name: Upload raw per-test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-part-regressions
+          path: results/audit_regressions/
+          if-no-files-found: ignore

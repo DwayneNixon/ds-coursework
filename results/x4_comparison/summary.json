@@ -1,0 +1,53 @@
+{
+  "experiment": "X4_communication_optimizations",
+  "trials_per_case": 3,
+  "rows": [
+    {
+      "optimization": "D1_sparse_key_cache",
+      "baseline_bytes": 2373522.0,
+      "optimized_bytes": 2144532.0,
+      "bytes_saved_percent": 9.6477,
+      "baseline_p99_ms": 2.223,
+      "optimized_p99_ms": 3.178,
+      "p99_definition": "push_p99_ms",
+      "notes": "Three historical D1 trials, median comparison"
+    },
+    {
+      "optimization": "D2_lossless_compression",
+      "baseline_bytes": 2373522.0,
+      "optimized_bytes": 1985158.0,
+      "bytes_saved_percent": 16.3624,
+      "baseline_p99_ms": 1.979,
+      "optimized_p99_ms": 2.443,
+      "p99_definition": "push_p99_ms",
+      "notes": "Three historical D2 trials, median comparison"
+    },
+    {
+      "optimization": "D1_D2_combined",
+      "baseline_bytes": 2373522.0,
+      "optimized_bytes": 1756168.0,
+      "bytes_saved_percent": 26.01,
+      "baseline_p99_ms": 1.979,
+      "optimized_p99_ms": 2.613,
+      "p99_definition": "push_p99_ms",
+      "notes": "Three historical D2 trials, median comparison"
+    },
+    {
+      "optimization": "D3_sparse_pull_batching",
+      "baseline_bytes": 108800.0,
+      "optimized_bytes": 39000.0,
+      "bytes_saved_percent": 64.1544,
+      "baseline_p99_ms": 7.4898,
+      "optimized_p99_ms": 1.1755,
+      "p99_definition": "p99_latency_ms",
+      "notes": "D3 group-of-eight Pull latency, three matched trials"
+    }
+  ],
+  "d3_rpc_reduction_percent": 87.5,
+  "caution": "D1/D2 rows measure Push p99, D3 measures group-of-Pulls p99. These are not directly comparable latency types. All byte figures count serialized application payloads, not TCP/gRPC overhead or backup replication traffic.",
+  "historical_inputs": {
+    "d1_cache": "results/d1_cache_comparison",
+    "d2_compression": "results/d2_comparison",
+    "d3_batching": "results/d3_benchmark/comparison.csv"
+  }
+}

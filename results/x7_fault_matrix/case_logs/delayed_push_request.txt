@@ -1,0 +1,13 @@
+COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v tests.part_f.test_f52_x7_faults.MessageFaultCases.test_delayed_push_rpc_preserves_acknowledged_order
+
+STDOUT:
+
+
+STDERR:
+test_delayed_push_rpc_preserves_acknowledged_order (tests.part_f.test_f52_x7_faults.MessageFaultCases.test_delayed_push_rpc_preserves_acknowledged_order) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.898s
+
+OK
+

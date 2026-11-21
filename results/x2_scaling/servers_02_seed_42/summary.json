@@ -1,0 +1,29 @@
+{
+    "throughput": {
+        "window_s": 1,
+        "completed_pushes": 80,
+        "peak_pushes_per_s": 80
+    },
+    "p50_push_latency_ms": 7.4178035,
+    "p99_push_latency_ms": 20.446299399999848,
+    "p50_pull_latency_ms": 6.1049264999999995,
+    "p99_pull_latency_ms": 37.93330390999998,
+    "total_bytes": 2798814,
+    "final_distance": 34.61621777526604,
+    "recovery_times": [],
+    "servers": 2,
+    "seed": 42,
+    "num_keys": 1024,
+    "keys_per_iter": 32,
+    "workers": 4,
+    "iterations_per_worker": 20,
+    "completed_pushes": 80,
+    "elapsed_s": 0.32780004300002474,
+    "throughput_pushes_per_s": 244.05121874860146,
+    "total_payload_bytes": 2798814,
+    "workload_sha256": "b1de1d17159281d13081d9cd5dd417110f25aa8586a29c71f43f650f2c9783e1",
+    "experiment": "X2_server_scaling",
+    "replication": 0,
+    "consistency": "eventual",
+    "process_isolation": "independent_server_processes"
+}

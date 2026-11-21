@@ -1,4 +1,0 @@
-ts_ns,action,args,outcome
-1794871732307259300,add_worker,"{""count"": 1}",ADDED workers [703]
-1794871732717192700,delay_link,"{""a"": 701, ""b"": ""server1"", ""jitter_ms"": 0, ""ms"": 80}",APPLIED delay_link 701|server1
-1794871732926863300,kill_worker,"{""target"": 2}",KILLED worker 2

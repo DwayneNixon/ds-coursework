@@ -1,0 +1,86 @@
+{
+  "experiment": "X2_server_scaling",
+  "server_counts": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "replication": 0,
+  "consistency": "eventual",
+  "cluster": "one localhost manager, independent Python server processes",
+  "throughput_ratio_8_to_1": 0.9649809674184829,
+  "data_files": [
+    "trials.csv",
+    "scaling.csv",
+    "scaling.png"
+  ],
+  "aggregate": [
+    {
+      "servers": 1,
+      "trials": 3,
+      "throughput_median": 154.4071259212828,
+      "push_p99_median_ms": 30.458424779999994,
+      "pull_p99_median_ms": 23.98203956999999
+    },
+    {
+      "servers": 2,
+      "trials": 3,
+      "throughput_median": 244.05121874860146,
+      "push_p99_median_ms": 20.446299399999848,
+      "pull_p99_median_ms": 17.90448485999988
+    },
+    {
+      "servers": 3,
+      "trials": 3,
+      "throughput_median": 266.57710386846884,
+      "push_p99_median_ms": 12.843329629999996,
+      "pull_p99_median_ms": 13.16465937
+    },
+    {
+      "servers": 4,
+      "trials": 3,
+      "throughput_median": 225.6052353950994,
+      "push_p99_median_ms": 15.765188299999942,
+      "pull_p99_median_ms": 35.300892899999965
+    },
+    {
+      "servers": 5,
+      "trials": 3,
+      "throughput_median": 190.09679845410403,
+      "push_p99_median_ms": 18.431570449999974,
+      "pull_p99_median_ms": 16.37400426999998
+    },
+    {
+      "servers": 6,
+      "trials": 3,
+      "throughput_median": 177.94165769483286,
+      "push_p99_median_ms": 22.09303367999984,
+      "pull_p99_median_ms": 18.08547217999999
+    },
+    {
+      "servers": 7,
+      "trials": 3,
+      "throughput_median": 166.19343812258106,
+      "push_p99_median_ms": 17.381686059999986,
+      "pull_p99_median_ms": 17.950601899999988
+    },
+    {
+      "servers": 8,
+      "trials": 3,
+      "throughput_median": 148.999937747827,
+      "push_p99_median_ms": 32.251812729999884,
+      "pull_p99_median_ms": 47.831913159999985
+    }
+  ],
+  "caveat": "Single-host shared CPU/memory and increasing RPC fan-out/reassembly cost limit interpretation as true multi-host scale."
+}

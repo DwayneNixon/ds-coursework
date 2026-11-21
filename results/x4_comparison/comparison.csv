@@ -1,0 +1,5 @@
+optimization,baseline_bytes,optimized_bytes,bytes_saved_percent,baseline_p99_ms,optimized_p99_ms,p99_definition,notes
+D1_sparse_key_cache,2373522.0,2144532.0,9.6477,2.223,3.178,push_p99_ms,"Three historical D1 trials, median comparison"
+D2_lossless_compression,2373522.0,1985158.0,16.3624,1.979,2.443,push_p99_ms,"Three historical D2 trials, median comparison"
+D1_D2_combined,2373522.0,1756168.0,26.01,1.979,2.613,push_p99_ms,"Three historical D2 trials, median comparison"
+D3_sparse_pull_batching,108800.0,39000.0,64.1544,7.4898,1.1755,p99_latency_ms,"D3 group-of-eight Pull latency, three matched trials"
