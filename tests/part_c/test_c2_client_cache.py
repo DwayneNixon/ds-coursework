@@ -4,7 +4,7 @@ from concurrent import futures
 
 import manager_pb2_grpc as manager_grpc
 
-from Part_C_Tests.test_c1_two_servers import start_server
+from harness.local_servers import start_server
 from parameter_client import ParameterClient
 from distributed_client import DistributedParameterClient
 

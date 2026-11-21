@@ -1,5 +1,5 @@
 
-from Part_C_Tests.test_c1_two_servers import start_server
+from harness.local_servers import start_server
 from distributed_client import DistributedParameterClient
 
 from parameter_client import (
