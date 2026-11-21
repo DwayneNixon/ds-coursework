@@ -9,13 +9,11 @@ on:
       - scripts/run_all_regressions.py
       - .github/workflows/audit-full.yml
       - server.py
+      - tests/**
+      - harness/**
+      - experiments/**
+      - configs/**
       - ds/**
-      - Part_A_Tests/**
-      - Part_B_Tests/**
-      - Part_C_Tests/**
-      - Part_D_Tests/**
-      - Part_E_Tests/**
-      - Part_F_Tests/**
 
 concurrency:
   group: audit-full-${{ github.ref }}

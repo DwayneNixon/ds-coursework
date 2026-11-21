@@ -32,17 +32,17 @@ jobs:
         run: |
           python -m compileall -q -x '/__pycache__/' .
           python -m scripts.check_repository
-          python -c "import server, parameter_client, server_manager, Part_B_Tests.run_b4, Part_F_Tests.run_f51_x6, Part_F_Tests.run_f52_x7"
+          python -c "import server, parameter_client, server_manager, experiments.b4_scenarios, experiments.x6_failover, experiments.x7_failures"
       - name: Part A standalone regressions
         run: |
-          python -m Part_A_Tests.test_server_dependencies
-          python -m Part_A_Tests.test_request_limits
-          python -m Part_A_Tests.test_rule_registration
-          python -m Part_A_Tests.test_concurrent_pushes
+          python -m tests.part_a.test_server_dependencies
+          python -m tests.part_a.test_request_limits
+          python -m tests.part_a.test_rule_registration
+          python -m tests.part_a.test_concurrent_pushes
       - name: Part B native dense-range worker integration
         run: |
-          python -m Part_B_Tests.test_b2_worker_dense_range
-          python -m Part_B_Tests.test_b2_million_key_distributed
+          python -m tests.part_b.test_b2_worker_dense_range
+          python -m tests.part_b.test_b2_million_key_distributed
       - name: X1 analytical multiworker oracle
         run: |
           python -m experiments x1
@@ -51,7 +51,7 @@ jobs:
           python -m experiments x2 --output results/x2_scaling
       - name: Part C worker integration
         run: |
-          python -m Part_C_Tests.test_c1_worker_harness
+          python -m tests.part_c.test_c1_worker_harness
       - name: X3 consistency evaluation
         run: |
           python -m experiments x3
@@ -61,26 +61,26 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/ds-audit-server.log' EXIT
           sleep 2
-          python -m Part_B_Tests.run_b4
+          python -m experiments b4
       - name: D3 batching and X4 communication analysis
         run: |
           python -m experiments d3 --output results/d3_benchmark/comparison.csv
           python -m experiments x4
       - name: E1 selective freeze and F3 process recovery regressions
         run: |
-          python -m Part_E_Tests.test_e12_source_transfer
-          python -m unittest -v Part_F_Tests.test_f31_replica_promotion
-          python -m unittest -v Part_F_Tests.test_f32_replication_repair
+          python -m tests.part_e.test_e12_source_transfer
+          python -m unittest -v tests.part_f.test_f31_replica_promotion
+          python -m unittest -v tests.part_f.test_f32_replication_repair
       - name: Part F process-based smoke
         run: |
-          python -m unittest -v Part_F_Tests.test_f12_automatic_failure_detection
-          python -m unittest -v Part_F_Tests.test_f24_process_replication
+          python -m unittest -v tests.part_f.test_f12_automatic_failure_detection
+          python -m unittest -v tests.part_f.test_f24_process_replication
       - name: X6 live fault experiment
         run: |
-          python -m experiments x6 --output results/audit_x6
+          python -m experiments x6 --output results/x6_failover
       - name: X7 fault matrix
         run: |
-          python -m experiments x7 --x6-summary results/audit_x6/summary.json --output results/audit_x7
+          python -m experiments x7 --x6-summary results/x6_failover/summary.json --output results/x7_fault_matrix
       - name: Build and verify eight-page report PDF
         run: |
           python -m pip install -r requirements-report.txt
@@ -122,8 +122,8 @@ jobs:
             results/ci_evidence_manifest.json
             docs/REPORT_DRAFT.md
             docs/ARCHITECTURE.md
-            results/audit_x6/
-            results/audit_x7/
+            results/x6_failover/
+            results/x7_fault_matrix/
           if-no-files-found: ignore
       - name: Commit validated evidence to audit branch
         if: success() && github.event_name == 'push' && github.ref == 'refs/heads/audit/fix-runner-paths'
@@ -132,7 +132,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f results/x1_aggregation/ results/x2_scaling/ results/c5_evaluation/
           git add -f results/d3_benchmark/ results/x4_comparison/
-          git add -f results/audit_x6/ results/audit_x7/
+          git add -f results/x6_failover/ results/x7_fault_matrix/
           git add -f results/ci_evidence_manifest.json
           git add -f submission/parameter_server_report.pdf submission/parameter_server_report.md
           if git diff --cached --quiet; then
