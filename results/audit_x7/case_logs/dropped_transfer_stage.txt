@@ -7,7 +7,7 @@ STDERR:
 test_dropped_transfer_staging_rpc_aborts_before_publication (Part_F_Tests.test_f52_x7_faults.MessageFaultCases.test_dropped_transfer_staging_rpc_aborts_before_publication) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.769s
+Ran 1 test in 1.808s
 
 OK
 

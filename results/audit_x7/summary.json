@@ -3,44 +3,44 @@
     {
       "case_id": "x6_primary_mid_iteration",
       "metrics": {
-        "T_detect_s": 0.5013280019999229,
-        "T_promote_s": 0.028613450000079865,
-        "T_resume_s": 0.10057934099995691,
-        "completed_pushes": 748,
+        "T_detect_s": 0.4973286609999832,
+        "T_promote_s": 0.008131229000014173,
+        "T_resume_s": 0.09902413300000035,
+        "completed_pushes": 762,
         "file": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x6/summary.json",
         "oracle_max_error": 9.094947017729282e-13,
-        "postfault_only_recovery_s": 1.6000000000000227,
-        "recovery_s": 0.6305207929999597,
+        "postfault_only_recovery_s": 1.5,
+        "recovery_s": 0.6044840229999977,
         "seed": 42,
-        "sliding_recovery_s": 0.10000000000002274,
+        "sliding_recovery_s": 0.09999999999999432,
         "theta_pre": 64.0,
         "threshold_90pct": 57.6,
-        "x6_events_sha256": "d494d6492d237adcbb0c1c36fe034a6c893cfc8704d2846bd86c8e9b8eeba366",
-        "x6_summary_sha256": "a30b42fc63262d31d61221e4416ae018046e13c31902babbed9f129d2802c955"
+        "x6_events_sha256": "9d97678d4a7cc36b0485fc66621f9e472cd28898cb4771791ae820cf01be70d8",
+        "x6_summary_sha256": "467b93d2c9edf30806252c158cef1851b4d634cf2bf384fc180fbfb54e5d82ee"
       },
       "result": "PASS",
-      "test_duration_s": 0.004439,
+      "test_duration_s": 0.004018,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/x6_primary_mid_iteration.txt"
     },
     {
       "case_id": "migration_source_during_staging",
       "metrics": {},
       "result": "PASS",
-      "test_duration_s": 2.010005,
+      "test_duration_s": 2.312705,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/migration_source_during_staging.txt"
     },
     {
       "case_id": "migration_destination_during_staging",
       "metrics": {},
       "result": "PASS",
-      "test_duration_s": 2.069642,
+      "test_duration_s": 2.301741,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/migration_destination_during_staging.txt"
     },
     {
       "case_id": "migration_partial_postpublication",
       "metrics": {},
       "result": "EXPECTED_FAIL_CLOSED",
-      "test_duration_s": 1.969582,
+      "test_duration_s": 1.750069,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/migration_partial_postpublication.txt"
     },
     {
@@ -51,7 +51,7 @@
         ],
         "completed_survivor_pushes": 3,
         "consistency": "bounded",
-        "crash_exclusion_latency_s": 0.6513653750000685,
+        "crash_exclusion_latency_s": 0.6797323800000186,
         "final_weights": [
           -0.30000000000000004,
           -0.30000000000000004
@@ -64,7 +64,7 @@
         "tau": 1
       },
       "result": "PASS",
-      "test_duration_s": 1.834807,
+      "test_duration_s": 1.83235,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/worker_bounded_crash.txt"
     },
     {
@@ -75,12 +75,12 @@
         "forwarded": 2,
         "injected_delay_s": 0.25,
         "injection": "delay_first_push_before_grpc_send",
-        "measured_first_rpc_s": 0.252508908999971,
+        "measured_first_rpc_s": 0.2532569760000172,
         "replica_sequence": 2,
         "rpc_attempts": 2
       },
       "result": "PASS",
-      "test_duration_s": 2.200443,
+      "test_duration_s": 1.922765,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/delayed_push_request.txt"
     },
     {
@@ -94,7 +94,7 @@
         "rpc_attempts": 2
       },
       "result": "PASS",
-      "test_duration_s": 1.770404,
+      "test_duration_s": 1.819798,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/dropped_push_request.txt"
     },
     {
@@ -112,7 +112,7 @@
         "rpc_attempts": 2
       },
       "result": "PASS",
-      "test_duration_s": 1.913627,
+      "test_duration_s": 1.639005,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/dropped_push_ack.txt"
     },
     {
@@ -126,7 +126,7 @@
         "unpublished_transfer_aborted": true
       },
       "result": "PASS",
-      "test_duration_s": 1.906033,
+      "test_duration_s": 1.935439,
       "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/dropped_transfer_stage.txt"
     }
   ],
@@ -145,7 +145,7 @@
     "Only X6 provides a continuous, five-second-prebaseline throughput experiment here"
   ],
   "matrix_file": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/matrix.csv",
-  "run_duration_s": 15.681070832999922,
+  "run_duration_s": 15.521490599000003,
   "seed": 42,
   "status": "PASS",
   "total_rows": 9,

@@ -37,8 +37,8 @@
       "baseline_bytes": 108800.0,
       "optimized_bytes": 39000.0,
       "bytes_saved_percent": 64.1544,
-      "baseline_p99_ms": 13.7411,
-      "optimized_p99_ms": 2.0486,
+      "baseline_p99_ms": 12.5196,
+      "optimized_p99_ms": 1.9193,
       "p99_definition": "p99_latency_ms",
       "notes": "D3 group-of-eight Pull latency, three matched trials"
     }

@@ -1,7 +1,7 @@
 # Building a Parameter Server — Architecture, Evaluation and Recovery
 
 **Course:** Distributed Systems · University of Edinburgh (INFR11022)  
-**Evidence revision:** 358274afb485 · **CI run:** 44947728275
+**Evidence revision:** 4a6ef5bc2e11 · **CI run:** 44948301120
 
 ## 1. Aim and API
 
@@ -31,7 +31,7 @@ For fault tolerance, servers emit heartbeats, maintain ordered backup replicas a
 
 The reusable Part B worker runs a seeded `Pull → compute → Push` loop. Tests cover sparse skew, dense ranges, stragglers, 1,024-key X2 scaling, failure injection and independent target/fixed-gradient numerical oracles. B5 records timestamped operation metrics, iterations, convergence, scenario events and a JSON summary. Application bytes mean **serialized Protobuf payloads**, not full transport traffic.
 
-GitHub Actions runs each experiment from a clean checkout with Python 3.13 and compatible dependencies. A separate workflow launches every Part A–F regression script in an isolated Python process with fresh server state. The evidence revision and workflow run are recorded above. Experimental timing is host-dependent; reproducible seeds and raw CSV results are retained with the repository.
+GitHub Actions reruns X1–X4 and X6/X7 from a clean checkout with Python 3.13 and compatible dependencies; X5 uses the separately recorded in-process E4 scale-up trial. A second workflow runs all Part A–F regression scripts in isolated processes with fresh server state. The revision and CI run are recorded above. Timings vary by host, and reproducible seeds and raw CSVs are retained.
 
 ## 5. Evaluation
 
@@ -45,25 +45,32 @@ With a fixed seeded workload, three trials each across **1–8 real server proce
 
 | Servers | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Median Pushes/s | 78.2 | 137.1 | 149.3 | 134.1 | 124.4 | 105.9 | 100.5 | 88.9 |
+| Median Pushes/s | 88.3 | 152.6 | 168.7 | 142.8 | 140.0 | 118.6 | 115.8 | 100.4 |
 
-The highest measured throughput was at **3 servers** (149.3 Pushes/s, **1.91×** the one-server baseline); eight servers achieved **1.14×**. The performance is non-monotonic: increased RPC fan-out, result reassembly and contention on a shared localhost host are plausible causes, not individually established bottlenecks. Figure 3 displays both throughput and Push p99 latency for these same trials. These results do not imply multi-host scale-out.
+The highest measured throughput was at **3 servers** (168.7 Pushes/s, **1.91×** the one-server baseline); eight servers achieved **1.14×**. The performance is non-monotonic: increased RPC fan-out, result reassembly and contention on a shared localhost host are plausible causes, not individually established bottlenecks. Figure 3 displays both throughput and Push p99 latency for these same trials. These results do not imply multi-host scale-out.
 
 ### X3: What does relaxed consistency change?
 
-The C5 comparison ran **30 scenarios** (five modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput improved from **154/s sequential** to approximately **345/s at τ=1**, **402/s at τ=2**, **404/s at τ=4**, and **410/s eventual**. With a 60 ms straggler, all modes were near **31 Pushes/s**, indicating worker compute time dominated. Sequential observed zero iteration lag; bounded modes respected their τ setting; eventual lag reached 22 with a straggler. Convergence and final errors differed by schedule. Figure 4 compares convergence at equal update counts; equal elapsed time can lead to different numbers of updates.
+The X3/C5 evaluation ran **30 seeded cases** (five consistency modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput was **133.0/s sequential**, **206.2/s at τ=1**, **226.4/s at τ=2**, **227.1/s at τ=4**, and **227.0/s eventual**. With a 60 ms straggler, all five medians lay between **30.2 and 30.7/s**, so worker computation dominated aggregate throughput. Sequential mode held zero iteration lag; bounded modes respected their configured τ; eventual reached lag **22** in these trials. Figure 4 compares convergence at equal logical update counts; equal wall time can produce different work done.
 
 ### X4: Communication trade-offs
 
-Three-trial median comparisons showed cached key IDs saved approximately **9.65%** total payload bytes, compression **16.36%**, caching plus compression **26.01%**, and D3 batch Pulls **64.15%** (1,600→200 physical RPCs, **87.5%** fewer). Figure 5 compares application payload bytes and percentage reduction. The cache/compression costs can increase Push p99; D3's p99 measures a **group of Pulls** and is not directly comparable with Push p99.
+The three-trial X4 comparisons quantify both serialized payload traffic and p99 latency. Cached key lists, lossless compression and their combination reduce bytes but can add encoding/cache latency. Grouped Pull batching also reduces physical RPC count by **87.5%**. Figure 5 plots the byte reductions; the paired medians below show the p99 cost or benefit of each technique. D3's group-of-eight Pull p99 is **not directly comparable** with the D1/D2 Push p99 values.
+
+| Optimization | Bytes saved | Baseline → optimized p99 |
+|---|---:|---:|
+| D1 key-list caching | 9.65% | 2.22 → 3.18 ms (Push) |
+| D2 value compression | 16.36% | 1.98 → 2.44 ms (Push) |
+| D1+D2 combined | 26.01% | 1.98 → 2.61 ms (Push) |
+| D3 Pull batching | 64.15% | 12.52 → 1.92 ms (group Pull) |
 
 ### X5: Elasticity while training
 
-An E4 two-to-four-server transition under ongoing Push traffic preserved a final Push-count oracle across 3,926 successful updates. The latest trial measured a **0.00675s** cutover and 5-second-window throughput of **325.2 before** and **326.8 Pushes/s after**. Figure 6 shows the observed Push rate around the server-add transition. This is an in-process migration experiment and should not be compared directly with process-isolated X2 timings.
+An E4 two-to-four-server transition under ongoing Push traffic preserved a final Push-count oracle across 3,926 successful updates. The recorded trial measured a **0.00675s** cutover, five-second-window throughput of **325.2 before** and **326.8 Pushes/s after**, and Push **p95 latency of 2.05ms before versus 1.92ms after**. Figure 6 shows the observed Push rate around the server-add transition. This is an in-process migration experiment and should not be compared directly with process-isolated X2 timings.
 
 ### X6: Crash survival and exactly-once effects
 
-In the process-separated three-server, k=1-replica experiment, a primary was killed after Pull and before Push. The measured trial completed **748 acknowledged logical Pushes** and matched the independent fixed-gradient oracle with a maximum absolute error of **9.09e-13**. Detection took **0.501s**, promotion **0.029s**, and the first recovered Push occurred **0.631s** after the fault. A conservative postfault-only 90% throughput recovery diagnostic was **1.6s**. These values are from the CI run identified above; they are not worst-case bounds. The oracle counts acknowledged logical updates rather than repeated RPC attempts. The demonstrated guarantee is one confirmed crash-stop with a surviving replica and live manager, not arbitrary network partitions.
+In the process-separated three-server, k=1-replica experiment, a primary was killed after Pull and before Push. The measured trial completed **762 acknowledged logical Pushes** and matched the independent fixed-gradient oracle with a maximum absolute error of **9.09e-13**. Detection took **0.497s**, promotion **0.008s**, and the first recovered Push occurred **0.604s** after the fault. A conservative postfault-only 90% throughput recovery diagnostic was **1.5s**. These values are from the CI run identified above; they are not worst-case bounds. The oracle counts acknowledged logical updates rather than repeated RPC attempts. The demonstrated guarantee is one confirmed crash-stop with a surviving replica and live manager, not arbitrary network partitions.
 
 ### X7: Failure matrix and limits
 
