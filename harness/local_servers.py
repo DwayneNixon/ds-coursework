@@ -14,7 +14,7 @@ def start_server():
         futures.ThreadPoolExecutor(max_workers=4)
     )
 
-    parameter_server_pb2_grpc.add_ParameterServerServicer_to_server(
+    pb_grpc.add_ParameterServerServicer_to_server(
         ParameterServer(value_width=2),
         grpc_server,
     )
