@@ -18,7 +18,9 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 GROUPS = (
     "x1_aggregation", "x2_scaling", "c5_evaluation",
-    "d3_benchmark", "x4_comparison", "x6_failover", "x7_fault_matrix",
+    "d1_cache_comparison", "d2_comparison", "d3_benchmark",
+    "x4_comparison", "e4_elasticity", "x6_failover",
+    "x7_fault_matrix",
 )
 
 
