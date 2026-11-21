@@ -6,6 +6,11 @@ on:
       - audit/fix-runner-paths
   workflow_dispatch:
 
+# Keep only the newest audit run when consecutive fixes are pushed.
+concurrency:
+  group: audit-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
