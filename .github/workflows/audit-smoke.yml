@@ -39,13 +39,16 @@ jobs:
           python -m Part_B_Tests.test_b2_worker_dense_range
       - name: X1 analytical multiworker oracle
         run: |
-          python -m Part_B_Tests.run_x1_aggregation
+          python -m experiments x1
       - name: X2 fixed-workload 1–8-server scaling
         run: |
-          python -m Part_B_Tests.run_x2_scaling --output results/audit_x2
+          python -m experiments x2 --output results/x2_scaling
       - name: Part C worker integration
         run: |
           python -m Part_C_Tests.test_c1_worker_harness
+      - name: X3 consistency evaluation
+        run: |
+          python -m experiments x3
       - name: Part B integrated harness smoke
         run: |
           python -u server.py > /tmp/ds-audit-server.log 2>&1 &
@@ -55,8 +58,8 @@ jobs:
           python -m Part_B_Tests.run_b4
       - name: D3 batching and X4 communication analysis
         run: |
-          python -m Part_D_Tests.run_d3_benchmark --output results/audit_d3/comparison.csv
-          python -m experiments.x4_comparison
+          python -m experiments d3 --output results/d3_benchmark/comparison.csv
+          python -m experiments x4
       - name: E1 selective freeze and F3 process recovery regressions
         run: |
           python -m Part_E_Tests.test_e12_source_transfer
@@ -68,10 +71,10 @@ jobs:
           python -m unittest -v Part_F_Tests.test_f24_process_replication
       - name: X6 live fault experiment
         run: |
-          python -m Part_F_Tests.run_f51_x6 --output results/audit_x6
+          python -m experiments x6 --output results/audit_x6
       - name: X7 fault matrix
         run: |
-          python -m Part_F_Tests.run_f52_x7 --x6-summary results/audit_x6/summary.json --output results/audit_x7
+          python -m experiments x7 --x6-summary results/audit_x6/summary.json --output results/audit_x7
       - name: Upload experiment evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -80,9 +83,10 @@ jobs:
           path: |
             /tmp/ds-audit-server.log
             results/x1_aggregation/
-            results/audit_x2/
-            results/audit_d3/
-            results/audit_x4/
+            results/x2_scaling/
+            results/c5_evaluation/
+            results/d3_benchmark/
+            results/x4_comparison/
             results/audit_x6/
             results/audit_x7/
           if-no-files-found: ignore
