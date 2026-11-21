@@ -71,7 +71,7 @@ class RepairProcessTests(unittest.TestCase):
         self.manager.start_heartbeat_monitor(interval_s=0.025)
         self.processes = {}
         self.peers = {}
-        script = Path(__file__).resolve().parents[1] / "server.py"
+        script = Path(__file__).resolve().parents[2] / "server.py"
         for address in (self.s1, self.s2, self.s3):
             process = subprocess.Popen(
                 [sys.executable, "-u", str(script), "--listen", address,

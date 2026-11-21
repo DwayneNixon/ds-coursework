@@ -73,7 +73,7 @@ class ReplicaPromotionTests(unittest.TestCase):
 
         self.processes = {}
         self.peers = {}
-        file = Path(__file__).resolve().parents[1] / "server.py"
+        file = Path(__file__).resolve().parents[2] / "server.py"
         for address in (self.failed, self.backup):
             process = subprocess.Popen(
                 [sys.executable, "-u", str(file), "--listen", address,
