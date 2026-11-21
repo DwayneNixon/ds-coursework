@@ -2010,11 +2010,19 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                 request, context, keys, gradients, task_key, fingerprint,
             )
 
-        # F2.2's per-Push path remains unchanged by default.
-        with self._push_serial_lock:
-            return self._execute_push_commit(
-                request, context, keys, gradients, task_key, fingerprint,
-            )
+        # Replicated Pushes require a global send order so backups receive
+        # exactly the same sequence. Unreplicated Pushes already commit
+        # atomically under self.lock and MUST NOT hold the global serial lock
+        # while a frozen E1 range is waiting: that would also block unrelated
+        # nonmigrating ranges (E1.2's selective-fence guarantee).
+        if self._live_replication_targets:
+            with self._push_serial_lock:
+                return self._execute_push_commit(
+                    request, context, keys, gradients, task_key, fingerprint,
+                )
+        return self._execute_push_commit(
+            request, context, keys, gradients, task_key, fingerprint,
+        )
 
     def _enqueue_batched_push(
         self, request, context, keys, gradients, task_key, fingerprint,
