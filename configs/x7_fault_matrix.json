@@ -1,8 +1,8 @@
 {
   "experiment": "X7_failure_matrix",
   "seed": 42,
-  "output_dir": "results/f52_x7",
-  "x6_summary": "results/f51_x6/summary.json",
+  "output_dir": "results/x7_fault_matrix",
+  "x6_summary": "results/x6_failover/summary.json",
   "cases": [
     {
       "id": "x6_primary_mid_iteration",
