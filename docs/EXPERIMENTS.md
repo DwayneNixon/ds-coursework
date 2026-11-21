@@ -29,27 +29,13 @@ The independent oracle checks the distance every round. Earlier clean-checkout C
 
 `configs/x2_scaling.json` fixes 1,024 width-2 model keys, four workers, 20 iterations each, 32 sparse keys/iteration, seeds 42/43/44, a shared application-level RNG schedule, no replication/faults and eventual consistency. Each server is a **separate Python OS process** listening on loopback; one in-process manager publishes a consistent range map. Partition boundaries distribute the actual measured low-numbered model keys across all N servers. Each trial records operation payload bytes and p99 latencies.
 
-The first three-seed CI experiment yielded these median **Pushes per second** (exact values vary by host/load):
-
-| Servers | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Median Pushes/s | 102.42 | 188.79 | 202.26 | 169.65 | 159.94 | 137.85 | 132.45 | 115.23 |
-
-Three servers peaked at approximately **1.97×** the single-server throughput; eight servers yielded approximately **1.13×**. This is non-monotonic local-process scaling: more fan-out, merge work and shared CPU/network-stack contention are *plausible* causes, not uniquely proven bottlenecks. Show both throughput and p99; avoid claiming multi-host scale-out from a single-host benchmark.
+The runner creates **24 raw trials** (eight server counts × seeds 42/43/44) and `scaling.csv` with the three-trial median throughput and p99. In the recorded runs, throughput peaks around two to three servers and subsequently declines. The **numerical medians are remeasured each CI run** and can vary materially with host contention; use `results/x2_scaling/scaling.csv` and the **revision-stamped rendered report** as the authoritative values. A single-host experiment does not establish production scale-out efficiency.
 
 ## X3: consistency vs throughput/convergence
 
-The committed `results/c5_evaluation/summary.csv` contains 30 seeded cases: five consistency settings × 0/60 ms straggler × three seeds. Median observed throughput:
+The `results/c5_evaluation/summary.csv` contains **30 seeded cases**: five consistency settings (sequential; bounded τ=1,2,4; eventual) × 0/60 ms straggler × three seeds. All results are recomputed in CI, so the medians in historical local trials need not equal the final CI values. Refer to `summary.csv` for the actual throughput, p99, maximum lag and convergence, and to the **rendered report** for medians calculated from the same run.
 
-| Mode | No straggler, Pushes/s | 60 ms straggler, Pushes/s | Allowed bound |
-|---|---:|---:|---|
-| Sequential | 154.0 | 31.4 | Lag 0 |
-| Bounded τ=1 | 345.1 | 31.6 | Lag 1 |
-| Bounded τ=2 | 401.7 | 31.1 | Lag 2 |
-| Bounded τ=4 | 404.1 | 31.3 | Lag 4 |
-| Eventual | 409.7 | 31.3 | Unbounded; recorded lag up to 22 with straggler |
-
-Straggler compute time dominated the observed throughput in the latter five configurations. Final distances in different async schedules are not directly comparable to X1's synchronous analytic oracle.
+The expected qualitative trade-off is that relaxed consistency permits more overlap without a straggler, whereas a large worker-side compute delay can dominate all modes. Sequential holds zero iteration lag; bounded modes must respect τ; eventual may admit substantially larger lag.
 
 ## X4: communication comparison
 
