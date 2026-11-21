@@ -1,6 +1,8 @@
 
 import argparse
+import csv
 import time
+from pathlib import Path
 
 from Part_C_Tests.test_c2_server_ownership import make_server
 from distributed_client import DistributedParameterClient
@@ -119,6 +121,7 @@ def run_trial(number, cache, compression):
         print(f"Caching: {cache}")
         print(f"Compression: {compression}")
 
+        trial_rows = []
         for name, data in records.items():
             latencies = [r["latency_ms"] for r in data]
 
@@ -140,6 +143,19 @@ def run_trial(number, cache, compression):
             )
             print(f"P50 batch latency: {percentile(latencies, 50):.3f} ms")
             print(f"P99 batch latency: {percentile(latencies, 99):.3f} ms")
+            trial_rows.append({
+                "trial": number,
+                "mode": name,
+                "caching": cache,
+                "compression": compression,
+                "logical_pulls": ROUNDS * len(GROUPS),
+                "physical_rpcs": rpcs,
+                "request_bytes": request_bytes,
+                "response_bytes": response_bytes,
+                "total_bytes": request_bytes + response_bytes,
+                "p50_latency_ms": percentile(latencies, 50),
+                "p99_latency_ms": percentile(latencies, 99),
+            })
 
         baseline = sum(
             r["request_bytes"] + r["response_bytes"]
@@ -159,6 +175,7 @@ def run_trial(number, cache, compression):
 
         print(f"\nPayload reduction: {saving:.2f}%")
         print("Correctness and RPC reduction: PASS")
+        return trial_rows
 
     finally:
         if client is not None:
@@ -172,12 +189,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cache", action="store_true")
     parser.add_argument("--compress", action="store_true")
+    parser.add_argument("--output", default="results/d3_benchmark/comparison.csv")
     args = parser.parse_args()
 
+    rows = []
     for trial in range(1, TRIALS + 1):
-        run_trial(trial, args.cache, args.compress)
-
-    print("\nD3 benchmark: PASS")
+        rows.extend(run_trial(trial, args.cache, args.compress))
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"Saved D3 comparison: {output}")
+    print("\\nD3 benchmark: PASS")
 
 
 if __name__ == "__main__":
