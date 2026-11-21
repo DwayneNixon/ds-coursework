@@ -140,12 +140,24 @@ def build_document(source, destination, figure_paths, font_size):
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    fontfile = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    family = Path("/usr/share/fonts/truetype/dejavu")
+    fontfile = family / "DejaVuSans.ttf"
     if fontfile.exists():
-        try:
-            pdfmetrics.registerFont(TTFont("DS-DejaVu", str(fontfile)))
-        except Exception:
-            pass
+        from reportlab.pdfbase.pdfmetrics import registerFontFamily
+        faces = {
+            "DS-DejaVu": "DejaVuSans.ttf",
+            "DS-DejaVu-Bold": "DejaVuSans-Bold.ttf",
+            "DS-DejaVu-Oblique": "DejaVuSans-Oblique.ttf",
+            "DS-DejaVu-BoldOblique": "DejaVuSans-BoldOblique.ttf",
+        }
+        for alias, filename in faces.items():
+            pdfmetrics.registerFont(TTFont(alias, str(family / filename)))
+        registerFontFamily(
+            "DS-DejaVu",
+            normal="DS-DejaVu", bold="DS-DejaVu-Bold",
+            italic="DS-DejaVu-Oblique",
+            boldItalic="DS-DejaVu-BoldOblique",
+        )
     name = "DS-DejaVu" if "DS-DejaVu" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
     normal = ParagraphStyle("normal", fontName=name, fontSize=font_size,
                             leading=font_size*1.35, textColor=colors.HexColor("#253441"),
