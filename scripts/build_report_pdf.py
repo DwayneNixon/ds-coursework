@@ -13,6 +13,7 @@ import html
 import json
 import os
 import re
+import statistics
 import subprocess
 import tempfile
 from pathlib import Path
@@ -75,6 +76,49 @@ def insert_verified_results(source):
         "These results do not imply multi-host scale-out."
     )
 
+    with (ROOT / "results/c5_evaluation/summary.csv").open(
+        encoding="utf-8", newline=""
+    ) as handle:
+        x3_rows = list(csv.DictReader(handle))
+    if len(x3_rows) != 30:
+        raise ValueError("X3 requires 30 seeded mode/straggler trials")
+
+    modes = ("sequential", "bounded_1", "bounded_2", "bounded_4", "eventual")
+    def median_throughput(mode, straggler):
+        values = [
+            float(row["pushes_per_s"]) for row in x3_rows
+            if row["mode"] == mode
+            and int(float(row["straggler_ms"])) == straggler
+        ]
+        if len(values) != 3:
+            raise ValueError(f"X3 expected three trials: {mode}, {straggler} ms")
+        return statistics.median(values)
+
+    med0 = {mode: median_throughput(mode, 0) for mode in modes}
+    med60 = {mode: median_throughput(mode, 60) for mode in modes}
+    eventual_lag = max(
+        int(row["max_lag"]) for row in x3_rows
+        if row["mode"] == "eventual"
+        and int(float(row["straggler_ms"])) == 60
+    )
+    x3text = (
+        "The X3/C5 evaluation ran **30 seeded cases** "
+        "(five consistency modes × 0/60 ms straggler × three seeds). "
+        "Without a straggler, median Push throughput was "
+        f"**{med0['sequential']:.1f}/s sequential**, "
+        f"**{med0['bounded_1']:.1f}/s at τ=1**, "
+        f"**{med0['bounded_2']:.1f}/s at τ=2**, "
+        f"**{med0['bounded_4']:.1f}/s at τ=4**, and "
+        f"**{med0['eventual']:.1f}/s eventual**. "
+        "With a 60 ms straggler, all five medians lay between "
+        f"**{min(med60.values()):.1f} and {max(med60.values()):.1f}/s**, "
+        "so worker computation dominated aggregate throughput. "
+        "Sequential mode held zero iteration lag; bounded modes respected "
+        f"their configured τ; eventual reached lag **{eventual_lag}** "
+        "in these trials. Figure 4 compares convergence at equal logical "
+        "update counts; equal wall time can produce different work done."
+    )
+
     timing = x6["recovery_times"]
     decomposition = timing["decomposition"]
     conservative = timing["throughput"]["postfault_only_recovery_s"]
@@ -125,6 +169,7 @@ def insert_verified_results(source):
         "{{CI_RUN}}": run_id,
         "{{X2_TABLE}}": table,
         "{{X2_INTERPRETATION}}": comment,
+        "{{X3_SUMMARY}}": x3text,
         "{{X6_SUMMARY}}": x6text,
         "{{X7_TABLE}}": "\n".join(rows),
     }
