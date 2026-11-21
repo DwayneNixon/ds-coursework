@@ -37,6 +37,7 @@ jobs:
       - name: Part B native dense-range worker integration
         run: |
           python -m Part_B_Tests.test_b2_worker_dense_range
+          python -m Part_B_Tests.test_b2_million_key_distributed
       - name: X1 analytical multiworker oracle
         run: |
           python -m experiments x1
