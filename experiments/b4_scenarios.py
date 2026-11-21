@@ -173,7 +173,7 @@ def main():
                 sys.executable,
                 "-u",
                 "-m",
-                "Part_B_Tests.run_b4",
+                "experiments.b4_scenarios",
                 "--worker",
                 str(worker_id),
                 str(state_file),
