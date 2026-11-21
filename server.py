@@ -23,10 +23,21 @@ def sgd_update(weights, gradients, learning_rate):
 
 class ParameterServer(pb_grpc.ParameterServerServicer):
 
-    def __init__(self, value_width=2):
+    def __init__(self, value_width=2, max_values_per_request=200_000):
         if value_width < 1:
             raise ValueError("Vector width must be at least 1")
+        if (
+            type(max_values_per_request) is not int
+            or max_values_per_request < value_width
+        ):
+            raise ValueError(
+                "Request value limit must be an integer >= vector width"
+            )
 
+        # Prevent a single dense range from exhausting memory while keeping
+        # a million+ key *model* possible via multiple bounded requests.
+        self.max_values_per_request = max_values_per_request
+        self.max_keys_per_request = max_values_per_request // value_width
         self.value_width = value_width
         self.weights = {}
         self.learning_rate = 0.1
@@ -1543,11 +1554,24 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                     grpc.StatusCode.INVALID_ARGUMENT,
                     "Range begin must not exceed end",
                 )
+            # Compare endpoints directly: len(range(...)) can overflow for
+            # uint64 intervals larger than Py_ssize_t.
+            if end - begin > self.max_keys_per_request:
+                context.abort(
+                    grpc.StatusCode.RESOURCE_EXHAUSTED,
+                    "Request exceeds configured dense-range key limit",
+                )
 
             return range(begin, end)
 
         # Existing sparse-key behaviour.
         keys = list(request.keys)
+
+        if len(keys) > self.max_keys_per_request:
+            context.abort(
+                grpc.StatusCode.RESOURCE_EXHAUSTED,
+                "Request exceeds configured sparse-key limit",
+            )
 
         if len(keys) != len(set(keys)):
             context.abort(
