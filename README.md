@@ -29,6 +29,8 @@ python server.py
 
 By default it listens on `127.0.0.1:50051` with width-2 vectors and SGD learning rate 0.1.
 
+A server also limits each Pull/Push to **200,000 parameter values** by default (for width 2: at most 100,000 keys per request). The optional `ParameterServer(max_values_per_request=...)` constructor setting changes this budget; it does **not** limit the total number of parameter keys in the model. Oversized requests fail with `RESOURCE_EXHAUSTED`.
+
 In terminal 2, from the repository root:
 
 ```bash
