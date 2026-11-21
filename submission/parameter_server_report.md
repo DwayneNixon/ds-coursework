@@ -1,7 +1,7 @@
 # Building a Parameter Server — Architecture, Evaluation and Recovery
 
 **Course:** Distributed Systems · University of Edinburgh (INFR11022)  
-**Evidence revision:** de2fb6befd65 · **CI run:** 44948775528
+**Evidence revision:** 63ab1ba94e9c · **CI run:** 44951704835
 
 ## 1. Aim and API
 
@@ -45,13 +45,13 @@ With a fixed seeded workload, three trials each across **1–8 real server proce
 
 | Servers | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Median Pushes/s | 103.9 | 181.4 | 196.5 | 166.2 | 159.0 | 132.4 | 128.5 | 110.8 |
+| Median Pushes/s | 154.4 | 244.1 | 266.6 | 225.6 | 190.1 | 177.9 | 166.2 | 149.0 |
 
-The highest measured throughput was at **3 servers** (196.5 Pushes/s, **1.89×** the one-server baseline); eight servers achieved **1.07×**. The performance is non-monotonic: increased RPC fan-out, result reassembly and contention on a shared localhost host are plausible causes, not individually established bottlenecks. Figure 3 displays both throughput and Push p99 latency for these same trials. These results do not imply multi-host scale-out.
+The highest measured throughput was at **3 servers** (266.6 Pushes/s, **1.73×** the one-server baseline); eight servers achieved **0.96×**. The performance is non-monotonic: increased RPC fan-out, result reassembly and contention on a shared localhost host are plausible causes, not individually established bottlenecks. Figure 3 displays both throughput and Push p99 latency for these same trials. These results do not imply multi-host scale-out.
 
 ### X3: What does relaxed consistency change?
 
-The X3/C5 evaluation ran **30 seeded cases** (five consistency modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput was **140.0/s sequential**, **226.0/s at τ=1**, **274.3/s at τ=2**, **275.2/s at τ=4**, and **274.4/s eventual**. With a 60 ms straggler, all five medians lay between **30.8 and 31.2/s**, so worker computation dominated aggregate throughput. Sequential mode held zero iteration lag; bounded modes respected their configured τ; eventual reached lag **22** in these trials. Figure 4 compares convergence at equal logical update counts; equal wall time can produce different work done.
+The X3/C5 evaluation ran **30 seeded cases** (five consistency modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput was **158.9/s sequential**, **317.0/s at τ=1**, **391.9/s at τ=2**, **386.7/s at τ=4**, and **390.4/s eventual**. With a 60 ms straggler, all five medians lay between **31.7 and 31.9/s**, so worker computation dominated aggregate throughput. Sequential mode held zero iteration lag; bounded modes respected their configured τ; eventual reached lag **23** in these trials. Figure 4 compares convergence at equal logical update counts; equal wall time can produce different work done.
 
 ### X4: Communication trade-offs
 
@@ -62,7 +62,7 @@ The three-trial X4 comparisons quantify both serialized payload traffic and p99 
 | D1 key-list caching | 9.65% | 2.22 → 3.18 ms (Push) |
 | D2 value compression | 16.36% | 1.98 → 2.44 ms (Push) |
 | D1+D2 combined | 26.01% | 1.98 → 2.61 ms (Push) |
-| D3 Pull batching | 64.15% | 10.62 → 1.72 ms (group Pull) |
+| D3 Pull batching | 64.15% | 7.49 → 1.18 ms (group Pull) |
 
 ### X5: Elasticity while training
 
@@ -70,7 +70,7 @@ An E4 two-to-four-server transition under ongoing Push traffic preserved a final
 
 ### X6: Crash survival and exactly-once effects
 
-In the process-separated three-server, k=1-replica experiment, a primary was killed after Pull and before Push. The measured trial completed **776 acknowledged logical Pushes** and matched the independent fixed-gradient oracle with a maximum absolute error of **9.09e-13**. Detection took **0.510s**, promotion **0.019s**, and the first recovered Push occurred **0.619s** after the fault. A conservative postfault-only 90% throughput recovery diagnostic was **1.5s**. These values are from the CI run identified above; they are not worst-case bounds. The oracle counts acknowledged logical updates rather than repeated RPC attempts. The demonstrated guarantee is one confirmed crash-stop with a surviving replica and live manager, not arbitrary network partitions.
+In the process-separated three-server, k=1-replica experiment, a primary was killed after Pull and before Push. The measured trial completed **822 acknowledged logical Pushes** and matched the independent fixed-gradient oracle with a maximum absolute error of **1.25e-12**. Detection took **0.500s**, promotion **0.011s**, and the first recovered Push occurred **0.562s** after the fault. A conservative postfault-only 90% throughput recovery diagnostic was **1.5s**. These values are from the CI run identified above; they are not worst-case bounds. The oracle counts acknowledged logical updates rather than repeated RPC attempts. The demonstrated guarantee is one confirmed crash-stop with a surviving replica and live manager, not arbitrary network partitions.
 
 ### X7: Failure matrix and limits
 

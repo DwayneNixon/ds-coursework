@@ -1,13 +1,13 @@
-COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v Part_F_Tests.test_f52_x7_faults.MessageFaultCases.test_lost_push_reply_replay_same_task_id_exactly_once
+COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v tests.part_f.test_f52_x7_faults.MessageFaultCases.test_lost_push_reply_replay_same_task_id_exactly_once
 
 STDOUT:
 
 
 STDERR:
-test_lost_push_reply_replay_same_task_id_exactly_once (Part_F_Tests.test_f52_x7_faults.MessageFaultCases.test_lost_push_reply_replay_same_task_id_exactly_once) ... ok
+test_lost_push_reply_replay_same_task_id_exactly_once (tests.part_f.test_f52_x7_faults.MessageFaultCases.test_lost_push_reply_replay_same_task_id_exactly_once) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.738s
+Ran 1 test in 1.653s
 
 OK
 

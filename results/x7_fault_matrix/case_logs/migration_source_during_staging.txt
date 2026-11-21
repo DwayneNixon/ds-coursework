@@ -1,13 +1,13 @@
-COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v Part_F_Tests.test_f34_migration_crash_recovery.MigrationCrashTests.test_source_killed_after_staging_recovers_from_old_replica
+COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v tests.part_f.test_f34_migration_crash_recovery.MigrationCrashTests.test_source_killed_after_staging_recovers_from_old_replica
 
 STDOUT:
 
 
 STDERR:
-test_source_killed_after_staging_recovers_from_old_replica (Part_F_Tests.test_f34_migration_crash_recovery.MigrationCrashTests.test_source_killed_after_staging_recovers_from_old_replica) ... ok
+test_source_killed_after_staging_recovers_from_old_replica (tests.part_f.test_f34_migration_crash_recovery.MigrationCrashTests.test_source_killed_after_staging_recovers_from_old_replica) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 2.197s
+Ran 1 test in 2.190s
 
 OK
 

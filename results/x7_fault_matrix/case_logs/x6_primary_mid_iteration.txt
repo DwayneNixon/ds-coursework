@@ -1,17 +1,17 @@
 Verified X6 summary, oracle, events and successful ops.csv count.
 {
-  "T_detect_s": 0.5103013369999871,
-  "T_promote_s": 0.019176401000009946,
-  "T_resume_s": 0.08922867699999415,
-  "completed_pushes": 776,
-  "file": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x6/summary.json",
-  "oracle_max_error": 9.094947017729282e-13,
+  "T_detect_s": 0.5000449100000424,
+  "T_promote_s": 0.010666050999930121,
+  "T_resume_s": 0.05140470800006369,
+  "completed_pushes": 822,
+  "file": "/home/runner/work/ds-coursework/ds-coursework/results/x6_failover/summary.json",
+  "oracle_max_error": 1.2505552149377763e-12,
   "postfault_only_recovery_s": 1.5,
-  "recovery_s": 0.6187064149999912,
+  "recovery_s": 0.5621156690000362,
   "seed": 42,
-  "sliding_recovery_s": 0.09999999999999432,
-  "theta_pre": 66.0,
-  "threshold_90pct": 59.4,
-  "x6_events_sha256": "92aa359c158d80756440b661bbde6d30f256fe1fe19fd653756a0733575cb4a4",
-  "x6_summary_sha256": "d3143fcc279f93e4527d233a1f3f9351001b1654ddcc28b3743aca164498c992"
+  "sliding_recovery_s": 0.10000000000002274,
+  "theta_pre": 69.0,
+  "threshold_90pct": 62.1,
+  "x6_events_sha256": "805b54c37e8cc9ead30fa77c26f455d138f862cc7725eefe16285d741a3164a5",
+  "x6_summary_sha256": "1f2f62149228aa67c71e3a23a9a98f79e1f554530970ca30bf8697ddb7da0762"
 }
