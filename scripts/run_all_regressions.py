@@ -28,7 +28,10 @@ def run_one(path, output_dir, timeout):
     begin = time.perf_counter()
     server = None
     result = None
-    with tempfile.TemporaryDirectory(prefix="ds_test_server_") as folder:
+    with tempfile.TemporaryDirectory(
+        prefix="ds_test_server_",
+        ignore_cleanup_errors=(sys.platform == "win32"),
+    ) as folder:
         serverlog = Path(folder) / "server.log"
         try:
             with serverlog.open("w", encoding="utf-8") as logs:
