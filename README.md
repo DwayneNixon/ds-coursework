@@ -2,7 +2,7 @@
 
 A Python/gRPC parameter server developed for the University of Edinburgh Distributed Systems coursework. Implementation and tests are organised into Parts A–F. The accompanying part READMEs explain the design, test cases, measurements and stated limitations.
 
-> **Submission status:** This repository is still undergoing final audit. The existing X3–X7 evidence does not replace missing X1/X2 experiments or a full requirement-by-requirement review.
+> **Submission status:** This repository is still undergoing final audit. The existing X3–X7 evidence does not replace unverified X1 or missing X2 evidence or a full requirement-by-requirement review.
 
 ## Requirements
 
@@ -57,6 +57,16 @@ python -m unittest -v Part_F_Tests.test_f12_automatic_failure_detection
 python -m unittest -v Part_F_Tests.test_f24_process_replication
 ```
 
+### X1 — analytical multiworker aggregation
+
+The X1 experiment reuses the Part B worker loop, independent hidden-target oracle, convergence observer and B5 CSV/JSON exporters. All workers Pull the same round snapshot before submitting their target-difference gradients, and the next round waits for every acknowledged Push. This realizes the synchronous sequential round assumed by the handout's formula.
+
+```bash
+python -m Part_B_Tests.run_x1_aggregation
+```
+
+Configuration: `configs/x1_aggregation.json`. The driver compares every measured round distance with `|1 - learning_rate * number_of_workers|^t × initial_distance` to numerical tolerance, and writes `ops.csv`, `iterations.csv`, `convergence.csv`, `events.csv`, `oracle.csv` and `summary.json` under `results/x1_aggregation/`. No separately started server is required.
+
 ### B4/B5 integrated worker and fault scenario
 
 Start a **fresh** standalone server in another terminal:
@@ -105,7 +115,7 @@ The runner reads `Part_F_Tests/f52_x7_config.json`, verifies X6 evidence, and la
 
 ## Known limits and audit status
 
-- The final X1 analytical multiworker contraction and X2 1–8 server scaling experiments still require complete, reproducible evidence.
+- The X1 analytic-oracle runner has been implemented and is part of CI, but its evidence and integration review are ongoing. X2's 1–8 server scaling experiment still requires reproducible evidence.
 - Fault experiments establish guarantees only for their recorded configurations and injected boundaries, not arbitrary network partitions or multiple simultaneous failures.
 - X7 records one intentional fail-closed postpublication migration case.
 - The final project-wide source, configuration and performance audit remains in progress. Do not infer full submission readiness solely from the smoke workflow.
