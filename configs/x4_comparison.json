@@ -3,7 +3,7 @@
   "inputs": {
     "d1_cache": "results/d1_cache_comparison",
     "d2_compression": "results/d2_comparison",
-    "d3_batching": "results/audit_d3/comparison.csv"
+    "d3_batching": "results/d3_benchmark/comparison.csv"
   },
-  "output_dir": "results/audit_x4"
+  "output_dir": "results/x4_comparison"
 }
