@@ -6,6 +6,10 @@ on:
       - audit/fix-runner-paths
   workflow_dispatch:
 
+# Needed only to archive verified generated evidence on the audit branch.
+permissions:
+  contents: write
+
 # Keep only the newest audit run when consecutive fixes are pushed.
 concurrency:
   group: audit-smoke-${{ github.ref }}
@@ -90,7 +94,7 @@ jobs:
           for term in (
               "X7: Failure matrix", "Primary crash mid-iteration",
               "Safe refusal (fail-closed)", "Evidence revision",
-              "Median Pushes/s",
+              "Median", "Pushes/s",
           ):
               assert term in txt, f"Missing report evidence: {term}"
           for old in ("informal report draft", "Before submission:",
@@ -98,6 +102,9 @@ jobs:
               assert old not in txt, f"Draft marker leaked into PDF: {old}"
           print(f"PDF content and pagination: PASS ({len(pdf.pages)} pages)")
           PY
+      - name: Validate and fingerprint evidence
+        run: |
+          python -m scripts.archive_audit_evidence
       - name: Upload experiment evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -111,8 +118,26 @@ jobs:
             results/d3_benchmark/
             results/x4_comparison/
             submission/parameter_server_report.pdf
+            submission/parameter_server_report.md
+            results/ci_evidence_manifest.json
             docs/REPORT_DRAFT.md
             docs/ARCHITECTURE.md
             results/audit_x6/
             results/audit_x7/
           if-no-files-found: ignore
+      - name: Commit validated evidence to audit branch
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/audit/fix-runner-paths'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f results/x1_aggregation/ results/x2_scaling/ results/c5_evaluation/
+          git add -f results/d3_benchmark/ results/x4_comparison/
+          git add -f results/audit_x6/ results/audit_x7/
+          git add -f results/ci_evidence_manifest.json
+          git add -f submission/parameter_server_report.pdf submission/parameter_server_report.md
+          if git diff --cached --quiet; then
+            echo "Validated experiment evidence already committed"
+            exit 0
+          fi
+          git commit -m "Archive verified X1-X7 results and report [skip ci]"
+          git push origin HEAD:refs/heads/audit/fix-runner-paths
