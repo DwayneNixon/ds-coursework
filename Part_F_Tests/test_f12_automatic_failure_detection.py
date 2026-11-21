@@ -209,7 +209,7 @@ class HeartbeatTransportTests(unittest.TestCase):
         service, manager_address = start_manager_rpc(manager)
         manager.start_heartbeat_monitor(interval_s=0.02)
 
-        script = Path(__file__).resolve().with_name("server.py")
+        script = Path(__file__).resolve().parents[1] / "server.py"
         self.assertTrue(script.is_file(), f"Missing server.py at {script}")
         process = subprocess.Popen(
             [
