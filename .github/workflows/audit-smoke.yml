@@ -1,0 +1,60 @@
+name: Audit regression smoke tests
+
+on:
+  push:
+    branches:
+      - audit/fix-runner-paths
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Compile and inspect imports
+        run: |
+          python -m compileall -q -x '/__pycache__/' .
+          python -c "import server, parameter_client, server_manager, Part_B_Tests.run_b4, Part_F_Tests.run_f51_x6, Part_F_Tests.run_f52_x7"
+      - name: Part A standalone regressions
+        run: |
+          python -m Part_A_Tests.test_server_dependencies
+          python -m Part_A_Tests.test_rule_registration
+          python -m Part_A_Tests.test_concurrent_pushes
+      - name: Part C worker integration
+        run: |
+          python -m Part_C_Tests.test_c1_worker_harness
+      - name: Part B integrated harness smoke
+        run: |
+          python -u server.py > /tmp/ds-audit-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/ds-audit-server.log' EXIT
+          sleep 2
+          python -m Part_B_Tests.run_b4
+      - name: Part F process-based smoke
+        run: |
+          python -m unittest -v Part_F_Tests.test_f12_automatic_failure_detection
+          python -m unittest -v Part_F_Tests.test_f24_process_replication
+      - name: X6 live fault experiment
+        run: |
+          python -m Part_F_Tests.run_f51_x6 --output results/audit_x6
+      - name: X7 fault matrix
+        run: |
+          python -m Part_F_Tests.run_f52_x7 --x6-summary results/audit_x6/summary.json --output results/audit_x7
+      - name: Upload experiment evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-smoke-evidence
+          path: |
+            /tmp/ds-audit-server.log
+            results/audit_x6/
+            results/audit_x7/
+          if-no-files-found: ignore
