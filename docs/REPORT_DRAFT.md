@@ -31,7 +31,7 @@ For fault tolerance, servers emit heartbeats, maintain ordered backup replicas a
 
 The reusable Part B worker runs a seeded `Pull → compute → Push` loop. Tests cover sparse skew, dense ranges, stragglers, 1,024-key X2 scaling, failure injection and independent target/fixed-gradient numerical oracles. B5 records timestamped operation metrics, iterations, convergence, scenario events and a JSON summary. Application bytes mean **serialized Protobuf payloads**, not full transport traffic.
 
-GitHub Actions runs each experiment from a clean checkout with Python 3.13 and compatible dependencies. A separate workflow launches every Part A–F regression script in an isolated Python process with fresh server state. The evidence revision and workflow run are recorded above. Experimental timing is host-dependent; reproducible seeds and raw CSV results are retained with the repository.
+GitHub Actions reruns X1–X4 and X6/X7 from a clean checkout with Python 3.13 and compatible dependencies; X5 uses the separately recorded in-process E4 scale-up trial. A second workflow runs all Part A–F regression scripts in isolated processes with fresh server state. The revision and CI run are recorded above. Timings vary by host, and reproducible seeds and raw CSVs are retained.
 
 ## 5. Evaluation
 
@@ -49,7 +49,7 @@ With a fixed seeded workload, three trials each across **1–8 real server proce
 
 ### X3: What does relaxed consistency change?
 
-The C5 comparison ran **30 scenarios** (five modes × 0/60 ms straggler × three seeds). Without a straggler, median Push throughput improved from **154/s sequential** to approximately **345/s at τ=1**, **402/s at τ=2**, **404/s at τ=4**, and **410/s eventual**. With a 60 ms straggler, all modes were near **31 Pushes/s**, indicating worker compute time dominated. Sequential observed zero iteration lag; bounded modes respected their τ setting; eventual lag reached 22 with a straggler. Convergence and final errors differed by schedule. Figure 4 compares convergence at equal update counts; equal elapsed time can lead to different numbers of updates.
+{{X3_SUMMARY}}
 
 ### X4: Communication trade-offs
 
