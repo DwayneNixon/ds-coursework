@@ -24,7 +24,7 @@ from harness.scenarios import ScenarioEngine
 from harness.worker import run_worker
 
 CONFIG_PATH = (
-    Path(__file__).resolve().parent
+    Path(__file__).resolve().parents[1]
     / "configs"
     / "b5_integrated.json"
 )
@@ -172,7 +172,8 @@ def main():
             command = [
                 sys.executable,
                 "-u",
-                str(Path(__file__).resolve()),
+                "-m",
+                "Part_B_Tests.run_b4",
                 "--worker",
                 str(worker_id),
                 str(state_file),
