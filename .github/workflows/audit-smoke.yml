@@ -26,6 +26,7 @@ jobs:
       - name: Part A standalone regressions
         run: |
           python -m Part_A_Tests.test_server_dependencies
+          python -m Part_A_Tests.test_request_limits
           python -m Part_A_Tests.test_rule_registration
           python -m Part_A_Tests.test_concurrent_pushes
       - name: Part B native dense-range worker integration
