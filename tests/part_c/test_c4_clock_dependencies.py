@@ -5,7 +5,7 @@ import grpc
 import parameter_server_pb2 as pb
 import parameter_server_pb2_grpc as pb_grpc
 
-from Part_C_Tests.test_c2_server_ownership import make_server
+from harness.local_servers import make_server
 from parameter_client import ParameterClient
 from routing import Partition, RoutingTable, KEY_SPACE_END
 

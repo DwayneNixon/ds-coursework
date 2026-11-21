@@ -7,7 +7,7 @@ large hidden targets, two routed shards and cross-shard dense requests.
 import math
 from concurrent.futures import ThreadPoolExecutor
 
-from Part_C_Tests.test_c2_server_ownership import make_server
+from harness.local_servers import make_server
 from distributed_client import DistributedParameterClient
 from harness.oracle import TargetVector
 from harness.worker import run_worker
