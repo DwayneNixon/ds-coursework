@@ -90,7 +90,7 @@ class ProcessReplicationTests(unittest.TestCase):
 
         self.processes = {}
         self.peers = {}
-        server_file = Path(__file__).resolve().with_name("server.py")
+        server_file = Path(__file__).resolve().parents[1] / "server.py"
         self.assertTrue(server_file.is_file())
         for address in (self.primary, self.backup):
             process = subprocess.Popen(
