@@ -53,6 +53,10 @@ jobs:
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/ds-audit-server.log' EXIT
           sleep 2
           python -m Part_B_Tests.run_b4
+      - name: D3 batching and X4 communication analysis
+        run: |
+          python -m Part_D_Tests.run_d3_benchmark --output results/audit_d3/comparison.csv
+          python -m experiments.x4_comparison
       - name: Part F process-based smoke
         run: |
           python -m unittest -v Part_F_Tests.test_f12_automatic_failure_detection
@@ -72,6 +76,8 @@ jobs:
             /tmp/ds-audit-server.log
             results/x1_aggregation/
             results/audit_x2/
+            results/audit_d3/
+            results/audit_x4/
             results/audit_x6/
             results/audit_x7/
           if-no-files-found: ignore
