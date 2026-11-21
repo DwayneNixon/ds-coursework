@@ -24,7 +24,14 @@ def get_number(text, name):
 
 def read_log(relative_path):
     path = ROOT / relative_path
-    text = path.read_text(encoding="utf-8-sig")
+    raw = path.read_bytes()
+    # Several original trial logs were saved through Windows PowerShell,
+    # which produces UTF-16 with a BOM; others were saved as UTF-8.
+    text = (
+        raw.decode("utf-16")
+        if raw.startswith((b"\\xff\\xfe", b"\\xfe\\xff"))
+        else raw.decode("utf-8-sig")
+    )
     if "Final parameter correctness: PASS" not in text:
         raise ValueError(f"Unverified old experiment log: {path}")
     return {
