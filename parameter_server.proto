@@ -25,6 +25,15 @@ message PushRequest {
 
     // Logical training iteration, independent of Task ID sequence.
     optional uint64 iteration = 7;
+
+    // D1: Identify a reusable sparse key list.
+    bytes key_cache_id = 9;
+
+    // D1: Resolve keys from the server cache instead of request.keys.
+    bool use_cached_keys = 10;
+
+    bytes compressed_gradients = 11;
+    bool gradients_compressed = 12;
 }
 
 message PushResponse {
@@ -42,6 +51,14 @@ message PullRequest {
 
     // Tasks that must succeed before this pull executes.
     repeated TaskId dependencies = 4;
+
+    // D1: Identify a reusable sparse key list.
+    bytes key_cache_id = 6;
+
+    // D1: Resolve keys from the server cache instead of request.keys.
+    bool use_cached_keys = 7;
+
+    bool accept_compressed_values = 8;
 }
 
 message PullResponse {
@@ -49,6 +66,8 @@ message PullResponse {
     repeated uint64 keys = 2;
     uint32 width = 3;
     repeated ClockSegment clocks = 4;
+    bytes compressed_values = 5;
+    bool values_compressed = 6;
 }
 
 message KeyRange {

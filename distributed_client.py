@@ -10,6 +10,7 @@ from parameter_client import (
 from routing import split_push, merge_pull
 from manager_rpc import fetch_ownership_map
 import grpc
+import hashlib
 
 def is_not_owner(error):
     return (
@@ -196,11 +197,13 @@ class DistributedTask(Task):
                         width=self.width,
                         iteration=self._iteration,
                         required_clock=self._required_clock,
+                        key_cache_id=self._client._cache_id(new_route),
                     )
                     else:
                         subtask = client.pull(
                         subtarget,
                         required_clock=self._required_clock,
+                        key_cache_id=self._client._cache_id(new_route),
                     )
 
                     # Keep the physical attempts for metrics.
@@ -280,15 +283,22 @@ class DistributedTask(Task):
 
 
 class DistributedParameterClient:
-    def __init__(self, routing_table, worker_id, value_width=2, required_clock=None):
+    def __init__(
+        self, routing_table, worker_id, value_width=2,
+        required_clock=None, key_caching=False,
+        value_compression=False,
+    ):
         if type(value_width) is not int or value_width < 1:
             raise ValueError("Invalid vector width")
 
         self.table = routing_table
         self.value_width = value_width
         self.worker_id = worker_id
+        self._key_caching = key_caching
+        self.value_compression = value_compression
         self.manager_address = None
         self._required_clock = dict(required_clock or {})
+        
 
         # Reuse the already-tested Part A clients.
         owners = {
@@ -298,10 +308,39 @@ class DistributedParameterClient:
 
         self.clients = {
             owner: ParameterClient(
-                owner, worker_id=worker_id
+                owner,
+                worker_id=worker_id,
+                value_compression=value_compression,
             )
             for owner in owners
         }
+
+
+    def _cache_id(self, route):
+        """Identify an ordered sparse key list for one ownership epoch."""
+
+        if not self._key_caching or not hasattr(route, "keys"):
+            return None
+
+        digest = hashlib.sha256()
+        digest.update(b"DS-D1-KEY-CACHE-V1")
+
+        for part in (
+            str(self.table.epoch),
+            route.partition_id,
+            route.owner,
+        ):
+            encoded = part.encode("utf-8")
+            digest.update(len(encoded).to_bytes(4, "big"))
+            digest.update(encoded)
+
+        digest.update(len(route.keys).to_bytes(8, "big"))
+
+        for key in route.keys:
+            digest.update(key.to_bytes(8, "big"))
+
+        return digest.digest()[:16]
+
 
     def _routes(self, target):
         if isinstance(target, range):
@@ -361,7 +400,8 @@ class DistributedParameterClient:
                 width=width,
                 deps=deps,
                 iteration=iteration,
-                required_clock=required_clock
+                required_clock=required_clock,
+                key_cache_id=self._cache_id(route),
             )
             tasks.append((route, task))
 
@@ -391,6 +431,7 @@ class DistributedParameterClient:
                 self._subtarget(route),
                 deps=deps,
                 required_clock=required_clock,  # FIX
+                key_cache_id=self._cache_id(route),
             )
             tasks.append((route, task))
 
@@ -404,6 +445,77 @@ class DistributedParameterClient:
             client=self,
             required_clock=required_clock,
         )
+
+
+    def pull_batch(self, targets, deps=None, required_clock=None):
+        """Combine independent sparse Pulls into fewer RPCs."""
+
+        if not isinstance(targets, (list, tuple)) or not targets:
+            raise ValueError("Expected nonempty batch of targets")
+
+        combined_keys = []
+        lengths = []
+
+        for target in targets:
+            if not isinstance(target, (list, tuple)) or not target:
+                raise ValueError(
+                    "Each batch target must be a nonempty sparse key list"
+                )
+
+            combined_keys.extend(target)
+            lengths.append(len(target))
+
+        # Restrict batching to disjoint key sets.
+        if len(set(combined_keys)) != len(combined_keys):
+            raise ValueError("Batch key sets must be disjoint")
+
+        # Reuse our existing distributed Pull implementation.
+        physical = self.pull(
+            combined_keys,
+            deps=deps,
+            required_clock=required_clock,
+        )
+
+        batch_task = Task()
+
+        # Preserve physical RPC information for our metrics.
+        batch_task.tasks = physical.tasks
+
+        def completed(future):
+            try:
+                response = future.result()
+
+                groups = []
+                position = 0
+
+                for count in lengths:
+                    end = position + count * self.value_width
+
+                    groups.append(
+                        list(response.values[position:end])
+                    )
+
+                    position = end
+
+                if position != len(response.values):
+                    raise RuntimeError(
+                        "Incorrect batched Pull response length"
+                    )
+
+                batch_task._future.set_result(
+                    SimpleNamespace(
+                        values=groups,
+                        width=self.value_width,
+                        clocks=response.clocks,
+                    )
+                )
+
+            except Exception as error:
+                batch_task._future.set_exception(error)
+
+        physical._future.add_done_callback(completed)
+
+        return batch_task
 
     def _check_deps(self, deps):
         deps = list(deps) if deps is not None else []
@@ -425,7 +537,11 @@ class DistributedParameterClient:
 
 
     @classmethod
-    def from_manager(cls, manager_address, worker_id, value_width=2):
+    def from_manager(
+        cls, manager_address, worker_id,
+        value_width=2, key_caching=False,
+        value_compression=False,
+    ):
         """Create a distributed client using manager discovery."""
 
         table = fetch_ownership_map(manager_address)
@@ -434,6 +550,8 @@ class DistributedParameterClient:
             table,
             worker_id=worker_id,
             value_width=value_width,
+            key_caching=key_caching,
+            value_compression=value_compression,
         )
 
         client.manager_address = manager_address
@@ -469,6 +587,7 @@ class DistributedParameterClient:
                 self.clients[owner] = ParameterClient(
                     owner,
                     worker_id=self.worker_id,
+                    value_compression=self.value_compression,
                 )
 
         # Publish the new map locally only after preparing clients.

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16parameter_server.proto\"\xdf\x01\n\x0bPushRequest\x12\x0c\n\x04keys\x18\x01 \x03(\x04\x12\x11\n\tgradients\x18\x02 \x03(\x01\x12\r\n\x05width\x18\x03 \x01(\r\x12\x1c\n\tkey_range\x18\x04 \x01(\x0b\x32\t.KeyRange\x12\x18\n\x07task_id\x18\x05 \x01(\x0b\x32\x07.TaskId\x12#\n\x0erequired_clock\x18\x08 \x03(\x0b\x32\x0b.ClockEntry\x12\x1d\n\x0c\x64\x65pendencies\x18\x06 \x03(\x0b\x32\x07.TaskId\x12\x16\n\titeration\x18\x07 \x01(\x04H\x00\x88\x01\x01\x42\x0c\n\n_iteration\"?\n\x0cPushResponse\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\x12\x1d\n\x06\x63locks\x18\x02 \x03(\x0b\x32\r.ClockSegment\"\x97\x01\n\x0bPullRequest\x12\x0c\n\x04keys\x18\x01 \x03(\x04\x12\x1c\n\tkey_range\x18\x02 \x01(\x0b\x32\t.KeyRange\x12#\n\x0erequired_clock\x18\x05 \x03(\x0b\x32\x0b.ClockEntry\x12\x18\n\x07task_id\x18\x03 \x01(\x0b\x32\x07.TaskId\x12\x1d\n\x0c\x64\x65pendencies\x18\x04 \x03(\x0b\x32\x07.TaskId\"Z\n\x0cPullResponse\x12\x0e\n\x06values\x18\x01 \x03(\x01\x12\x0c\n\x04keys\x18\x02 \x03(\x04\x12\r\n\x05width\x18\x03 \x01(\r\x12\x1d\n\x06\x63locks\x18\x04 \x03(\x0b\x32\r.ClockSegment\"&\n\x08KeyRange\x12\r\n\x05\x62\x65gin\x18\x01 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x02 \x01(\x04\"-\n\x06TaskId\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x10\n\x08sequence\x18\x02 \x01(\x04\"0\n\nClockEntry\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x0f\n\x07\x63ounter\x18\x02 \x01(\x04\"{\n\x0c\x43lockSegment\x12\x14\n\x0cpartition_id\x18\x01 \x01(\t\x12\r\n\x05\x62\x65gin\x18\x02 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x03 \x01(\x04\x12\x1b\n\x13\x65nd_is_keyspace_end\x18\x04 \x01(\x08\x12\x1c\n\x07\x65ntries\x18\x05 \x03(\x0b\x32\x0b.ClockEntry\"$\n\x14SetUpdateRuleRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\",\n\x15SetUpdateRuleResponse\x12\x13\n\x0b\x61\x63tive_rule\x18\x01 \x01(\t\"A\n\x19RegisterUpdateRuleRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x16\n\x0egradient_scale\x18\x02 \x01(\x01\"0\n\x1aRegisterUpdateRuleResponse\x12\x12\n\nregistered\x18\x01 \x01(\x08\x32\xea\x01\n\x0fParameterServer\x12#\n\x04Push\x12\x0c.PushRequest\x1a\r.PushResponse\x12#\n\x04Pull\x12\x0c.PullRequest\x1a\r.PullResponse\x12>\n\rSetUpdateRule\x12\x15.SetUpdateRuleRequest\x1a\x16.SetUpdateRuleResponse\x12M\n\x12RegisterUpdateRule\x12\x1a.RegisterUpdateRuleRequest\x1a\x1b.RegisterUpdateRuleResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16parameter_server.proto\"\xca\x02\n\x0bPushRequest\x12\x0c\n\x04keys\x18\x01 \x03(\x04\x12\x11\n\tgradients\x18\x02 \x03(\x01\x12\r\n\x05width\x18\x03 \x01(\r\x12\x1c\n\tkey_range\x18\x04 \x01(\x0b\x32\t.KeyRange\x12\x18\n\x07task_id\x18\x05 \x01(\x0b\x32\x07.TaskId\x12#\n\x0erequired_clock\x18\x08 \x03(\x0b\x32\x0b.ClockEntry\x12\x1d\n\x0c\x64\x65pendencies\x18\x06 \x03(\x0b\x32\x07.TaskId\x12\x16\n\titeration\x18\x07 \x01(\x04H\x00\x88\x01\x01\x12\x14\n\x0ckey_cache_id\x18\t \x01(\x0c\x12\x17\n\x0fuse_cached_keys\x18\n \x01(\x08\x12\x1c\n\x14\x63ompressed_gradients\x18\x0b \x01(\x0c\x12\x1c\n\x14gradients_compressed\x18\x0c \x01(\x08\x42\x0c\n\n_iteration\"?\n\x0cPushResponse\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\x12\x1d\n\x06\x63locks\x18\x02 \x03(\x0b\x32\r.ClockSegment\"\xe8\x01\n\x0bPullRequest\x12\x0c\n\x04keys\x18\x01 \x03(\x04\x12\x1c\n\tkey_range\x18\x02 \x01(\x0b\x32\t.KeyRange\x12#\n\x0erequired_clock\x18\x05 \x03(\x0b\x32\x0b.ClockEntry\x12\x18\n\x07task_id\x18\x03 \x01(\x0b\x32\x07.TaskId\x12\x1d\n\x0c\x64\x65pendencies\x18\x04 \x03(\x0b\x32\x07.TaskId\x12\x14\n\x0ckey_cache_id\x18\x06 \x01(\x0c\x12\x17\n\x0fuse_cached_keys\x18\x07 \x01(\x08\x12 \n\x18\x61\x63\x63\x65pt_compressed_values\x18\x08 \x01(\x08\"\x90\x01\n\x0cPullResponse\x12\x0e\n\x06values\x18\x01 \x03(\x01\x12\x0c\n\x04keys\x18\x02 \x03(\x04\x12\r\n\x05width\x18\x03 \x01(\r\x12\x1d\n\x06\x63locks\x18\x04 \x03(\x0b\x32\r.ClockSegment\x12\x19\n\x11\x63ompressed_values\x18\x05 \x01(\x0c\x12\x19\n\x11values_compressed\x18\x06 \x01(\x08\"&\n\x08KeyRange\x12\r\n\x05\x62\x65gin\x18\x01 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x02 \x01(\x04\"-\n\x06TaskId\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x10\n\x08sequence\x18\x02 \x01(\x04\"0\n\nClockEntry\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x0f\n\x07\x63ounter\x18\x02 \x01(\x04\"{\n\x0c\x43lockSegment\x12\x14\n\x0cpartition_id\x18\x01 \x01(\t\x12\r\n\x05\x62\x65gin\x18\x02 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x03 \x01(\x04\x12\x1b\n\x13\x65nd_is_keyspace_end\x18\x04 \x01(\x08\x12\x1c\n\x07\x65ntries\x18\x05 \x03(\x0b\x32\x0b.ClockEntry\"$\n\x14SetUpdateRuleRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\",\n\x15SetUpdateRuleResponse\x12\x13\n\x0b\x61\x63tive_rule\x18\x01 \x01(\t\"A\n\x19RegisterUpdateRuleRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x16\n\x0egradient_scale\x18\x02 \x01(\x01\"0\n\x1aRegisterUpdateRuleResponse\x12\x12\n\nregistered\x18\x01 \x01(\x08\x32\xea\x01\n\x0fParameterServer\x12#\n\x04Push\x12\x0c.PushRequest\x1a\r.PushResponse\x12#\n\x04Pull\x12\x0c.PullRequest\x1a\r.PullResponse\x12>\n\rSetUpdateRule\x12\x15.SetUpdateRuleRequest\x1a\x16.SetUpdateRuleResponse\x12M\n\x12RegisterUpdateRule\x12\x1a.RegisterUpdateRuleRequest\x1a\x1b.RegisterUpdateRuleResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,29 +32,29 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'parameter_server_pb2', _glo
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
   _globals['_PUSHREQUEST']._serialized_start=27
-  _globals['_PUSHREQUEST']._serialized_end=250
-  _globals['_PUSHRESPONSE']._serialized_start=252
-  _globals['_PUSHRESPONSE']._serialized_end=315
-  _globals['_PULLREQUEST']._serialized_start=318
-  _globals['_PULLREQUEST']._serialized_end=469
-  _globals['_PULLRESPONSE']._serialized_start=471
-  _globals['_PULLRESPONSE']._serialized_end=561
-  _globals['_KEYRANGE']._serialized_start=563
-  _globals['_KEYRANGE']._serialized_end=601
-  _globals['_TASKID']._serialized_start=603
-  _globals['_TASKID']._serialized_end=648
-  _globals['_CLOCKENTRY']._serialized_start=650
-  _globals['_CLOCKENTRY']._serialized_end=698
-  _globals['_CLOCKSEGMENT']._serialized_start=700
-  _globals['_CLOCKSEGMENT']._serialized_end=823
-  _globals['_SETUPDATERULEREQUEST']._serialized_start=825
-  _globals['_SETUPDATERULEREQUEST']._serialized_end=861
-  _globals['_SETUPDATERULERESPONSE']._serialized_start=863
-  _globals['_SETUPDATERULERESPONSE']._serialized_end=907
-  _globals['_REGISTERUPDATERULEREQUEST']._serialized_start=909
-  _globals['_REGISTERUPDATERULEREQUEST']._serialized_end=974
-  _globals['_REGISTERUPDATERULERESPONSE']._serialized_start=976
-  _globals['_REGISTERUPDATERULERESPONSE']._serialized_end=1024
-  _globals['_PARAMETERSERVER']._serialized_start=1027
-  _globals['_PARAMETERSERVER']._serialized_end=1261
+  _globals['_PUSHREQUEST']._serialized_end=357
+  _globals['_PUSHRESPONSE']._serialized_start=359
+  _globals['_PUSHRESPONSE']._serialized_end=422
+  _globals['_PULLREQUEST']._serialized_start=425
+  _globals['_PULLREQUEST']._serialized_end=657
+  _globals['_PULLRESPONSE']._serialized_start=660
+  _globals['_PULLRESPONSE']._serialized_end=804
+  _globals['_KEYRANGE']._serialized_start=806
+  _globals['_KEYRANGE']._serialized_end=844
+  _globals['_TASKID']._serialized_start=846
+  _globals['_TASKID']._serialized_end=891
+  _globals['_CLOCKENTRY']._serialized_start=893
+  _globals['_CLOCKENTRY']._serialized_end=941
+  _globals['_CLOCKSEGMENT']._serialized_start=943
+  _globals['_CLOCKSEGMENT']._serialized_end=1066
+  _globals['_SETUPDATERULEREQUEST']._serialized_start=1068
+  _globals['_SETUPDATERULEREQUEST']._serialized_end=1104
+  _globals['_SETUPDATERULERESPONSE']._serialized_start=1106
+  _globals['_SETUPDATERULERESPONSE']._serialized_end=1150
+  _globals['_REGISTERUPDATERULEREQUEST']._serialized_start=1152
+  _globals['_REGISTERUPDATERULEREQUEST']._serialized_end=1217
+  _globals['_REGISTERUPDATERULERESPONSE']._serialized_start=1219
+  _globals['_REGISTERUPDATERULERESPONSE']._serialized_end=1267
+  _globals['_PARAMETERSERVER']._serialized_start=1270
+  _globals['_PARAMETERSERVER']._serialized_end=1504
 # @@protoc_insertion_point(module_scope)

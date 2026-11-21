@@ -9,6 +9,8 @@ import parameter_server_pb2 as pb
 import parameter_server_pb2_grpc as pb_grpc
 from range_clocks import RangeClocks
 from routing import KEY_SPACE_END
+from collections import OrderedDict
+from value_compression import compress_doubles, decompress_doubles
 
 def sgd_update(weights, gradients, learning_rate):
     """Apply SGD to one parameter vector."""
@@ -55,6 +57,10 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         # This preserves the original Part A server behaviour.
         self.owner = None
         self.ownership_table = None
+
+        # D1: Sparse key-list cache.
+        self.key_cache = OrderedDict()
+        self.max_cached_key_lists = 128
 
 
     def set_ownership(self, owner, table):
@@ -103,6 +109,12 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
             self.range_clocks.update(new_clocks)
 
+            if (
+                self.ownership_table is None
+                or table.epoch != self.ownership_table.epoch
+            ):
+                self.key_cache.clear()
+
             self.owner = owner
             self.ownership_table = table
 
@@ -119,15 +131,56 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                 f"epoch={self.ownership_table.epoch}",
             )
 
+    
     def _resolve_keys(self, request, context):
-        # Check whether the request uses a dense range.
-        if request.HasField("key_range"):
+        """Resolve dense, sparse, or cached sparse targets."""
 
-            # A request cannot specify both formats.
+        cache_id = bytes(request.key_cache_id)
+
+        # A request that uses a previously registered key list.
+        if request.use_cached_keys:
+            if (
+                request.HasField("key_range")
+                or request.keys
+                or len(cache_id) != 16
+            ):
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    "Cached requests require a 16-byte cache ID "
+                    "and no explicit keys or range",
+                )
+
+            with self.lock:
+                keys = self.key_cache.get(cache_id)
+
+                if keys is None:
+                    context.abort(
+                        grpc.StatusCode.FAILED_PRECONDITION,
+                        "KEY_CACHE_MISS: key list not available",
+                    )
+
+                self.key_cache.move_to_end(cache_id)
+                return list(keys)
+
+        # A complete sparse request can register a cache ID.
+        if cache_id:
+            if (
+                len(cache_id) != 16
+                or request.HasField("key_range")
+                or not request.keys
+            ):
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    "Cache registration requires a 16-byte ID "
+                    "and a nonempty sparse key list",
+                )
+
+        # Existing dense-range behaviour.
+        if request.HasField("key_range"):
             if request.keys:
                 context.abort(
                     grpc.StatusCode.INVALID_ARGUMENT,
-                    "Specify either keys or key_range, not both"
+                    "Specify either keys or key_range, not both",
                 )
 
             begin = request.key_range.begin
@@ -136,21 +189,45 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             if begin > end:
                 context.abort(
                     grpc.StatusCode.INVALID_ARGUMENT,
-                    "Range begin must not exceed end"
+                    "Range begin must not exceed end",
                 )
 
             return range(begin, end)
 
-        # Otherwise, use the explicit sparse key list.
+        # Existing sparse-key behaviour.
         keys = list(request.keys)
 
         if len(keys) != len(set(keys)):
             context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
-                "Duplicate keys are not supported"
+                "Duplicate keys are not supported",
             )
 
         return keys
+
+    def _register_key_cache(self, request, keys, context):
+        """Register a sparse key list while holding self.lock."""
+
+        if request.use_cached_keys or not request.key_cache_id:
+            return
+
+        cache_id = bytes(request.key_cache_id)
+        key_list = tuple(keys)
+
+        existing = self.key_cache.get(cache_id)
+
+        if existing is not None and existing != key_list:
+            context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "KEY_CACHE_CONFLICT: ID already registered "
+                "for different keys",
+            )
+
+        self.key_cache[cache_id] = key_list
+        self.key_cache.move_to_end(cache_id)
+
+        if len(self.key_cache) > self.max_cached_key_lists:
+            self.key_cache.popitem(last=False)
 
 
     def _clock_requirements_satisfied(self, keys, required):
@@ -357,7 +434,7 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             self.task_condition.notify_all()
 
 
-    def _prepare_push_clocks(self, request, task_key):
+    def _prepare_push_clocks(self, request, task_key, keys):
         """Prepare clock changes without modifying stored clocks."""
         
         # Preserve compatibility with legacy clients and
@@ -375,15 +452,14 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             else sequence
         )
 
-        if request.HasField("key_range"):
+        # Use the resolved keys, including cached sparse keys.
+        if isinstance(keys, range):
             routes = self.ownership_table.split_range(
-                request.key_range.begin,
-                request.key_range.end,
+                keys.start,
+                keys.stop,
             )
         else:
-            routes = self.ownership_table.split_keys(
-                list(request.keys)
-            )
+            routes = self.ownership_table.split_keys(keys)
 
         prepared = {}
 
@@ -468,6 +544,31 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
         expected_length = len(keys) * self.value_width
 
+        # D2: Decode compressed gradients when supplied.
+        if request.gradients_compressed:
+            if request.gradients or not request.compressed_gradients:
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    "Specify compressed gradients without raw gradients",
+                )
+
+            try:
+                gradients = decompress_doubles(
+                    request.compressed_gradients,
+                    expected_length,
+                )
+            except ValueError as error:
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    str(error),
+                )
+
+        elif request.compressed_gradients:
+            context.abort(
+                grpc.StatusCode.INVALID_ARGUMENT,
+                "Compressed payload requires gradients_compressed",
+            )
+
         if len(gradients) != expected_length:
             context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
@@ -477,7 +578,7 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
         # Reject gradients that could corrupt parameter values.
         if any(
             not math.isfinite(gradient)
-            for gradient in request.gradients
+            for gradient in gradients
         ):
             context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
@@ -552,7 +653,7 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
             try:
                 prepared_clocks = self._prepare_push_clocks(
-                    request, task_key
+                    request, task_key, keys
                 )
             except (ValueError, KeyError) as error:
                 context.abort(
@@ -570,7 +671,7 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
                     end = start + request.width
 
                     gradient_vector = list(
-                        request.gradients[start:end]
+                        gradients[start:end]
                     )
 
                     # Copy the stored vector so a custom rule cannot
@@ -647,6 +748,7 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
         with self.lock:
             self._check_ownership(keys, context)
+            self._register_key_cache(request, keys, context)
 
             for key in keys:
                 vector = self.weights.get(
@@ -662,7 +764,27 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
 
             self._attach_clock_segments(response, keys)
 
+        # D2: Optionally compress the response values.
+        if request.accept_compressed_values:
+            compressed = pb.PullResponse()
+            compressed.CopyFrom(response)
+
+            compressed.ClearField("values")
+            compressed.compressed_values = compress_doubles(values)
+            compressed.values_compressed = True
+
+            # Send compressed values only when this actually
+            # reduces the serialized Protobuf response size.
+            if compressed.ByteSize() < response.ByteSize():
+                return compressed
+
         return response
+
+    def _is_key_cache_miss(self, context):
+        return (
+            context.code() == grpc.StatusCode.FAILED_PRECONDITION
+            and (context.details() or "").startswith("KEY_CACHE_MISS:")
+        )
 
 
     def Push(self, request, context):
@@ -670,7 +792,8 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             response = self._execute_push(request, context)
 
         except Exception:
-            self._finish_task(request, succeeded=False)
+            if not self._is_key_cache_miss(context):
+                self._finish_task(request, succeeded=False)
             raise
 
         self._finish_task(request, succeeded=True)
@@ -682,7 +805,8 @@ class ParameterServer(pb_grpc.ParameterServerServicer):
             response = self._execute_pull(request, context)
 
         except Exception:
-            self._finish_task(request, succeeded=False)
+            if not self._is_key_cache_miss(context):
+                self._finish_task(request, succeeded=False)
             raise
 
         self._finish_task(request, succeeded=True)

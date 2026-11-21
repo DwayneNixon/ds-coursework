@@ -5,6 +5,7 @@ import parameter_server_pb2 as pb
 import parameter_server_pb2_grpc as pb_grpc
 
 from concurrent.futures import Future, TimeoutError as FutureTimeoutError
+from value_compression import compress_doubles, decompress_doubles
 
 class TaskWaitTimeout(TimeoutError):
     """Raised when waiting for a task takes too long."""
@@ -89,7 +90,7 @@ class ParameterClient:
     """Client interface for accessing the parameter server."""
 
     
-    def __init__(self, address="127.0.0.1:50051", worker_id=None):
+    def __init__(self, address="127.0.0.1:50051", worker_id=None, value_compression=False):
 
         if worker_id is not None:
             if type(worker_id) is not int or not (0 <= worker_id < 2**32):
@@ -104,9 +105,12 @@ class ParameterClient:
         # Protect sequence allocation between threads.
         self._sequence_lock = threading.Lock()
 
+        self._cache_lock = threading.Lock()
+        self._ready_key_caches = set()
+
         self.channel = grpc.insecure_channel(address)
         self.stub = pb_grpc.ParameterServerStub(self.channel)
-    
+        self.value_compression = value_compression
 
     def _next_task_id(self):
         """Generate the next unique Push Task ID."""
@@ -166,9 +170,40 @@ class ParameterClient:
         task = Task(task_id=task_id)
 
         def rpc_finished(rpc_future):
-            """Store the RPC result or failure in our Task."""
+            """Store RPC results, preserving transmitted response size."""
             try:
                 response = rpc_future.result()
+
+                # Measure the Protobuf response before decompressing it.
+                task._response_wire_bytes = response.ByteSize()
+
+                if isinstance(response, pb.PullResponse):
+                    if response.values_compressed:
+                        if (
+                            not request.accept_compressed_values
+                            or response.values
+                            or not response.compressed_values
+                        ):
+                            raise ValueError(
+                                "Invalid compressed Pull response"
+                            )
+
+                        count = len(response.keys) * response.width
+                        values = decompress_doubles(
+                            response.compressed_values,
+                            count,
+                        )
+
+                        # Existing callers continue to read response.values.
+                        response.ClearField("compressed_values")
+                        response.values_compressed = False
+                        response.values.extend(values)
+
+                    elif response.compressed_values:
+                        raise ValueError(
+                            "Unexpected compressed Pull payload"
+                        )
+
             except Exception as error:
                 task._future.set_exception(error)
             else:
@@ -240,12 +275,167 @@ class ParameterClient:
             )
 
         return task
+
     
-    
+    def _cached_fields(self, target, key_cache_id):
+        """Choose full keys or a previously confirmed cache reference."""
+
+        fields = self._target_fields(target)
+
+        if key_cache_id is None:
+            return fields, None, None
+
+        if not isinstance(key_cache_id, bytes) or len(key_cache_id) != 16:
+            raise ValueError("Cache ID must contain exactly 16 bytes")
+
+        if "keys" not in fields or not fields["keys"]:
+            raise ValueError("Key caching requires nonempty sparse keys")
+
+        cache_keys = tuple(fields["keys"])
+
+        with self._cache_lock:
+            ready = key_cache_id in self._ready_key_caches
+
+        if ready:
+            fields = {
+                "key_cache_id": key_cache_id,
+                "use_cached_keys": True,
+            }
+        else:
+            fields["key_cache_id"] = key_cache_id
+
+        return fields, key_cache_id, cache_keys
+
+    def _schedule_with_cache(
+        self, rpc_method, request, deps,
+        task_id, cache_id, cache_keys,
+    ):
+        """Send a request and recover one confirmed key-cache miss."""
+
+        if cache_id is None:
+            return self._schedule(
+                rpc_method, request, deps=deps, task_id=task_id
+            )
+
+        task = Task(task_id=task_id)
+
+        request_bytes = request.SerializeToString(
+            deterministic=True
+        )
+
+        task._cache_id = cache_id
+        task._cache_keys = cache_keys
+        task._request_attempts = [request_bytes]
+        task._extra_response_bytes = 0
+
+        def completed(future, allow_recovery, physical_task):
+            try:
+                response = future.result()
+
+            except Exception as error:
+                is_cache_miss = (
+                    isinstance(error, grpc.RpcError)
+                    and error.code()
+                    == grpc.StatusCode.FAILED_PRECONDITION
+                    and (error.details() or "").startswith(
+                        "KEY_CACHE_MISS:"
+                    )
+                )
+
+                if not (
+                    allow_recovery
+                    and request.use_cached_keys
+                    and is_cache_miss
+                ):
+                    task._future.set_exception(error)
+                    return
+
+                with self._cache_lock:
+                    self._ready_key_caches.discard(cache_id)
+
+                # Re-register the key list using a safe read.
+                registration = pb.PullRequest(
+                    keys=list(cache_keys),
+                    key_cache_id=cache_id,
+                )
+
+                task._request_attempts.append(
+                    registration.SerializeToString(
+                        deterministic=True
+                    )
+                )
+
+                registration_task = self._schedule(
+                    self.stub.Pull,
+                    registration,
+                )
+
+                def registered(registration_future):
+                    try:
+                        registration_response = (
+                            registration_future.result()
+                        )
+                    except Exception as registration_error:
+                        task._future.set_exception(
+                            registration_error
+                        )
+                        return
+
+                    task._extra_response_bytes += (
+                        registration_response.ByteSize()
+                    )
+
+                    with self._cache_lock:
+                        self._ready_key_caches.add(cache_id)
+
+                    # Replay the EXACT original request and Task ID.
+                    task._request_attempts.append(request_bytes)
+
+                    retry = self._schedule(
+                        rpc_method,
+                        request,
+                        task_id=task_id,
+                    )
+
+                    retry._future.add_done_callback(
+                        lambda retry_future: completed(
+                            retry_future, False, retry
+                        )
+                    )
+
+                registration_task._future.add_done_callback(
+                    registered
+                )
+                return
+
+            with self._cache_lock:
+                self._ready_key_caches.add(cache_id)
+
+            # The decoded response may be larger than the wire payload.
+            task._response_wire_bytes = getattr(
+                physical_task,
+                "_response_wire_bytes",
+                response.ByteSize(),
+            )
+            task._future.set_result(response)
+
+        initial = self._schedule(
+            rpc_method,
+            request,
+            deps=deps,
+            task_id=task_id,
+        )
+
+        initial._future.add_done_callback(
+            lambda future: completed(future, True, initial)
+        )
+
+        return task
+
     
     def push(
         self, target, gradients, width, deps=None,
-        iteration=None, required_clock=None
+        iteration=None, required_clock=None, key_cache_id=None,
     ):
         """Submit a new logical push with its own Task ID."""
 
@@ -263,7 +453,9 @@ class ParameterClient:
                     "Explicit iterations require a worker ID"
                 )
             
-        fields = self._target_fields(target)
+        fields, cache_id, cache_keys = self._cached_fields(
+            target, key_cache_id
+        )
 
         request = pb.PushRequest(
             gradients=gradients,
@@ -288,17 +480,31 @@ class ParameterClient:
 
         # Include prerequisite IDs for server validation.
         self._attach_dependency_ids(request, deps)
+        if self.value_compression:
+            compressed = pb.PushRequest()
+            compressed.CopyFrom(request)
+
+            compressed.ClearField("gradients")
+            compressed.compressed_gradients = compress_doubles(
+                request.gradients
+            )
+            compressed.gradients_compressed = True
+
+            if compressed.ByteSize() < request.ByteSize():
+                request = compressed
 
         # Preserve the complete request for safe retries.
         request_bytes = request.SerializeToString(
             deterministic=True
         )
 
-        task = self._schedule(
+        task = self._schedule_with_cache(
             self.stub.Push,
             request,
-            deps=deps,
-            task_id=task_id
+            deps,
+            task_id,
+            cache_id,
+            cache_keys,
         )
 
         task._push_request_bytes = request_bytes
@@ -358,10 +564,13 @@ class ParameterClient:
         )
 
         # Submit another RPC attempt with the SAME Task ID.
-        retry_task = self._schedule(
+        retry_task = self._schedule_with_cache(
             self.stub.Push,
             request,
-            task_id=original_task.task_id
+            None,
+            original_task.task_id,
+            getattr(original_task, "_cache_id", None),
+            getattr(original_task, "_cache_keys", None),
         )
 
         # Allow another explicit retry if this attempt also fails.
@@ -372,10 +581,15 @@ class ParameterClient:
 
         return retry_task
  
-    def pull(self, target, deps=None, required_clock=None):
+    def pull(
+        self, target, deps=None,
+        required_clock=None, key_cache_id=None,
+    ):
         """Start a pull after its optional dependencies succeed."""
 
-        fields = self._target_fields(target)
+        fields, cache_id, cache_keys = self._cached_fields(
+            target, key_cache_id
+        )
         request = pb.PullRequest(**fields)
         self._attach_required_clock(request, required_clock)
 
@@ -391,13 +605,26 @@ class ParameterClient:
 
         self._attach_dependency_ids(request, deps)
 
-        return self._schedule(
-            self.stub.Pull,
-            request,
-            deps=deps,
-            task_id=task_id
+        if self.value_compression:
+            request.accept_compressed_values = True
+
+        request_bytes = request.SerializeToString(
+            deterministic=True
         )
 
+        task = self._schedule_with_cache(
+            self.stub.Pull,
+            request,
+            deps,
+            task_id,
+            cache_id,
+            cache_keys,
+        )
+
+        # Actual outgoing Pull request for later payload accounting.
+        task._pull_request_bytes = request_bytes
+        return task
+    
     def _next_pull_task_id(self):
         """Allocate Pull IDs without changing Push numbering."""
 

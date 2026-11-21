@@ -57,46 +57,67 @@ def serialized_pull_request_size(target, task, deps=None):
     return request.ByteSize()
 
 
+
+
 def distributed_payload_sizes(task, op):
-    """Sum the serialized payload sizes of all server subrequests."""
+    """Measure physical Protobuf payloads, including recovery."""
+
+    if op not in ("push", "pull"):
+        raise ValueError(f"Unknown operation: {op}")
 
     bytes_out = 0
     bytes_in = 0
 
     for route, subtask in task.tasks:
+        attempts = getattr(subtask, "_request_attempts", None)
 
-        if op == "push":
+        if attempts is not None:
+            # Includes cache registration and recovery requests.
+            bytes_out += sum(len(data) for data in attempts)
+            bytes_in += getattr(
+                subtask, "_extra_response_bytes", 0
+            )
+
+        elif op == "push":
             request_data = subtask._push_request_bytes
 
             if request_data is None:
                 raise RuntimeError(
-                    "Serialized push request is unavailable"
+                    "Serialized Push request is unavailable"
                 )
 
             bytes_out += len(request_data)
 
-        elif op == "pull":
-            if hasattr(route, "keys"):
-                subtarget = list(route.keys)
-            else:
-                subtarget = range(route.begin, route.end)
-
-            bytes_out += serialized_pull_request_size(
-                subtarget, subtask
+        else:
+            request_data = getattr(
+                subtask, "_pull_request_bytes", None
             )
 
-        else:
-            raise ValueError(f"Unknown operation: {op}")
+            if request_data is not None:
+                bytes_out += len(request_data)
+            else:
+                # Compatibility with existing Part B clients.
+                if hasattr(route, "keys"):
+                    subtarget = list(route.keys)
+                else:
+                    subtarget = range(route.begin, route.end)
 
-        # The logical Task has completed, so its
-        # underlying server Tasks must also be complete.
-        # A rejected RPC has no successful Protobuf response.
-        # Its request bytes still count.
+                bytes_out += serialized_pull_request_size(
+                    subtarget, subtask
+                )
+
+        # Failed RPCs have no successful Protobuf response.
         if subtask._future.exception() is None:
             response = subtask.wait(timeout_ms=0)
-            bytes_in += response.ByteSize()
+
+            bytes_in += getattr(
+                subtask,
+                "_response_wire_bytes",
+                response.ByteSize(),
+            )
 
     return bytes_out, bytes_in
+
 
 def measure_operation(
     create_task,
@@ -153,7 +174,9 @@ def measure_operation(
             raise ValueError(f"Unknown operation: {op}")
 
         # The completed RPC returns a Protobuf response.
-        bytes_in = result.ByteSize()
+        bytes_in = getattr(
+            task, "_response_wire_bytes", result.ByteSize()
+        )
 
         return task, result
 
