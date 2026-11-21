@@ -453,7 +453,8 @@ def build_document(source, destination, figure_paths, font_size):
                     img=Image(str(fp))
                     # The X5 transition plot is shorter so the conclusion
                     # fits on the same final page as the X7 failure matrix.
-                    image_limit = 140 if active_figure == 5 else 182
+                    image_limit = (150 if active_figure in (3, 4) else
+                                   140 if active_figure == 5 else 182)
                     scale=min(available/img.imageWidth, image_limit/img.imageHeight)
                     img.drawWidth=img.imageWidth*scale
                     img.drawHeight=img.imageHeight*scale

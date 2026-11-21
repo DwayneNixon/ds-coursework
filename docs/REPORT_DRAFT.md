@@ -71,7 +71,7 @@ The nine-case fault matrix (below) distinguishes recovered or explicitly handled
 
 {{X7_TABLE}}
 
-The postpublication source-crash case is **EXPECTED_FAIL_CLOSED**: writes can remain blocked because safe availability cannot be established. This is not automatic recovery and does not establish partition tolerance.
+**EXPECTED_FAIL_CLOSED** preserves safety by fencing uncertain writes, but does **not** restore availability or tolerate arbitrary network partitions.
 
 ## 6. Conclusion
 
