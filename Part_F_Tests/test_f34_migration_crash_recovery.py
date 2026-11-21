@@ -67,7 +67,7 @@ class MigrationCrashTests(unittest.TestCase):
         self.manager.start_heartbeat_monitor(interval_s=0.02)
         self.processes = {}
         self.peers = {}
-        program = Path(__file__).resolve().with_name("server.py")
+        program = Path(__file__).resolve().parents[1] / "server.py"
         for address in self.ids:
             proc = subprocess.Popen([
                 sys.executable, "-u", str(program),
