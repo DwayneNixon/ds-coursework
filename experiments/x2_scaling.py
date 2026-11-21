@@ -122,7 +122,10 @@ def start_cluster(count, logs_dir, num_keys):
 
 
 def run_trial(cfg, count, seed, root):
-    with tempfile.TemporaryDirectory(prefix="x2_scaling_") as logs:
+    with tempfile.TemporaryDirectory(
+        prefix="x2_scaling_",
+        ignore_cleanup_errors=(sys.platform == "win32"),
+    ) as logs:
         table, control, processes = start_cluster(
             count, logs, cfg["model"]["num_keys"]
         )

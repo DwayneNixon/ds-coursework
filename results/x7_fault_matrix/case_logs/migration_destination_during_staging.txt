@@ -1,4 +1,4 @@
-COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v tests.part_f.test_f34_migration_crash_recovery.MigrationCrashTests.test_destination_killed_while_staged_source_recovers
+COMMAND: C:\Users\dwayn\OneDrive\Desktop\DS Coursework\ds-coursework\.venv\Scripts\python.exe -m unittest -v tests.part_f.test_f34_migration_crash_recovery.MigrationCrashTests.test_destination_killed_while_staged_source_recovers
 
 STDOUT:
 
@@ -7,7 +7,7 @@ STDERR:
 test_destination_killed_while_staged_source_recovers (tests.part_f.test_f34_migration_crash_recovery.MigrationCrashTests.test_destination_killed_while_staged_source_recovers) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 2.229s
+Ran 1 test in 1.617s
 
 OK
 

@@ -1,7 +1,7 @@
-COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v tests.part_f.test_f52_x7_faults.BoundedWorkerCrashCase.test_real_worker_kill_unblocks_bounded_delay_and_keeps_weights
+COMMAND: C:\Users\dwayn\OneDrive\Desktop\DS Coursework\ds-coursework\.venv\Scripts\python.exe -m unittest -v tests.part_f.test_f52_x7_faults.BoundedWorkerCrashCase.test_real_worker_kill_unblocks_bounded_delay_and_keeps_weights
 
 STDOUT:
-X7 bounded worker crash exclusion latency: 0.647s
+X7 bounded worker crash exclusion latency: 0.679s
 
 
 STDERR:
@@ -9,7 +9,7 @@ test_real_worker_kill_unblocks_bounded_delay_and_keeps_weights (tests.part_f.tes
 Crash an actual coordinated worker subprocess while tau=1 blocks peer. ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.645s
+Ran 1 test in 1.837s
 
 OK
 

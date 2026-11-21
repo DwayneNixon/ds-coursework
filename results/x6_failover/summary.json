@@ -1,45 +1,45 @@
 {
   "batch_size": 1,
   "bytes_scope": "worker Protobuf payload only (not backup replication/TCP)",
-  "completed_pushes": 822,
+  "completed_pushes": 724,
   "duration_post_fault_s": 6.2,
   "duration_pre_fault_s": 6.2,
   "experiment": "X6_fixed_gradient_server_kill",
   "fault_phase": "after_pull_before_push",
-  "final_distance": 2.498525302125462e-12,
+  "final_distance": 1.5793880253852199e-12,
   "final_distance_reference": "independent fixed-gradient offline oracle",
   "limit": "confirmed crash-stop, one server failure, live manager",
   "offline_oracle": {
     "matches": true,
-    "max_absolute_error": 1.2505552149377763e-12,
+    "max_absolute_error": 7.958078640513122e-13,
     "mismatches": []
   },
-  "p50_pull_latency_ms": 1.130915,
-  "p50_push_latency_ms": 2.513745,
-  "p99_pull_latency_ms": 2.3963725999999954,
-  "p99_push_latency_ms": 5.678616099999988,
+  "p50_pull_latency_ms": 0.99115,
+  "p50_push_latency_ms": 2.1055,
+  "p99_pull_latency_ms": 1.8046989999999992,
+  "p99_push_latency_ms": 3.434208999999999,
   "recovery_times": {
     "decomposition": {
-      "T_detect_s": 0.5000449100000424,
-      "T_promote_s": 0.010666050999930121,
-      "T_rec_first_push_s": 0.5621156690000362,
-      "T_resume_to_first_push_s": 0.05140470800006369,
-      "controller_ready_s": 0.5544734950000247
+      "T_detect_s": 0.5254956999560818,
+      "T_promote_s": 0.017222799942828715,
+      "T_rec_first_push_s": 2.0970602999441326,
+      "T_resume_to_first_push_s": 1.554341800045222,
+      "controller_ready_s": 2.081951699918136
     },
     "throughput": {
       "baseline_pushes_per_second": [
-        69,
-        69,
-        69,
         70,
-        70
+        70,
+        68,
+        71,
+        71
       ],
       "measurement_note": "1-s sliding windows before t_fault+1 include pre-fault pushes; postfault_only_recovery_s is an additional conservative diagnostic.",
-      "postfault_only_recovery_s": 1.5,
+      "postfault_only_recovery_s": 3.0,
       "sample_step_s": 0.1,
       "samples": [
         {
-          "completed_pushes_per_s": 63,
+          "completed_pushes_per_s": 64,
           "post_fault_pushes_per_s": 0,
           "relative_s": 0.1
         },
@@ -64,133 +64,133 @@
           "relative_s": 0.5
         },
         {
-          "completed_pushes_per_s": 32,
-          "post_fault_pushes_per_s": 4,
+          "completed_pushes_per_s": 28,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 0.6
         },
         {
-          "completed_pushes_per_s": 32,
-          "post_fault_pushes_per_s": 10,
+          "completed_pushes_per_s": 22,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 0.7
         },
         {
-          "completed_pushes_per_s": 32,
-          "post_fault_pushes_per_s": 18,
+          "completed_pushes_per_s": 14,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 0.8
         },
         {
-          "completed_pushes_per_s": 32,
-          "post_fault_pushes_per_s": 24,
+          "completed_pushes_per_s": 8,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 0.9
         },
         {
-          "completed_pushes_per_s": 32,
-          "post_fault_pushes_per_s": 32,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.0
         },
         {
-          "completed_pushes_per_s": 38,
-          "post_fault_pushes_per_s": 38,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.1
         },
         {
-          "completed_pushes_per_s": 45,
-          "post_fault_pushes_per_s": 45,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.2
         },
         {
-          "completed_pushes_per_s": 52,
-          "post_fault_pushes_per_s": 52,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.3
         },
         {
-          "completed_pushes_per_s": 59,
-          "post_fault_pushes_per_s": 59,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.4
         },
         {
-          "completed_pushes_per_s": 66,
-          "post_fault_pushes_per_s": 66,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.5
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.6
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.7
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.8
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 1.9
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 0,
+          "post_fault_pushes_per_s": 0,
           "relative_s": 2.0
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 2,
+          "post_fault_pushes_per_s": 2,
           "relative_s": 2.1
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 8,
+          "post_fault_pushes_per_s": 8,
           "relative_s": 2.2
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 16,
+          "post_fault_pushes_per_s": 16,
           "relative_s": 2.3
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 22,
+          "post_fault_pushes_per_s": 22,
           "relative_s": 2.4
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 30,
+          "post_fault_pushes_per_s": 30,
           "relative_s": 2.5
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 36,
+          "post_fault_pushes_per_s": 36,
           "relative_s": 2.6
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 44,
+          "post_fault_pushes_per_s": 44,
           "relative_s": 2.7
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 50,
+          "post_fault_pushes_per_s": 50,
           "relative_s": 2.8
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 58,
+          "post_fault_pushes_per_s": 58,
           "relative_s": 2.9
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 64,
+          "post_fault_pushes_per_s": 64,
           "relative_s": 3.0
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 3.1
         },
         {
@@ -199,8 +199,8 @@
           "relative_s": 3.2
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 3.3
         },
         {
@@ -209,8 +209,8 @@
           "relative_s": 3.4
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 3.5
         },
         {
@@ -219,8 +219,8 @@
           "relative_s": 3.6
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 3.7
         },
         {
@@ -229,8 +229,8 @@
           "relative_s": 3.8
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 3.9
         },
         {
@@ -239,8 +239,8 @@
           "relative_s": 4.0
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 4.1
         },
         {
@@ -254,8 +254,8 @@
           "relative_s": 4.3
         },
         {
-          "completed_pushes_per_s": 70,
-          "post_fault_pushes_per_s": 70,
+          "completed_pushes_per_s": 72,
+          "post_fault_pushes_per_s": 72,
           "relative_s": 4.4
         },
         {
@@ -264,8 +264,8 @@
           "relative_s": 4.5
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 72,
+          "post_fault_pushes_per_s": 72,
           "relative_s": 4.6
         },
         {
@@ -274,8 +274,8 @@
           "relative_s": 4.7
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 72,
+          "post_fault_pushes_per_s": 72,
           "relative_s": 4.8
         },
         {
@@ -284,8 +284,8 @@
           "relative_s": 4.9
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 72,
+          "post_fault_pushes_per_s": 72,
           "relative_s": 5.0
         },
         {
@@ -294,8 +294,8 @@
           "relative_s": 5.1
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 72,
+          "post_fault_pushes_per_s": 72,
           "relative_s": 5.2
         },
         {
@@ -304,8 +304,8 @@
           "relative_s": 5.3
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 5.4
         },
         {
@@ -314,8 +314,8 @@
           "relative_s": 5.5
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 70,
+          "post_fault_pushes_per_s": 70,
           "relative_s": 5.6
         },
         {
@@ -329,8 +329,8 @@
           "relative_s": 5.8
         },
         {
-          "completed_pushes_per_s": 69,
-          "post_fault_pushes_per_s": 69,
+          "completed_pushes_per_s": 71,
+          "post_fault_pushes_per_s": 71,
           "relative_s": 5.9
         },
         {
@@ -339,20 +339,20 @@
           "relative_s": 6.0
         },
         {
-          "completed_pushes_per_s": 68,
-          "post_fault_pushes_per_s": 68,
+          "completed_pushes_per_s": 71,
+          "post_fault_pushes_per_s": 71,
           "relative_s": 6.1
         }
       ],
-      "theta_pre": 69.0,
-      "threshold_90pct": 62.1,
-      "throughput_recovery_s": 0.10000000000002274
+      "theta_pre": 70.0,
+      "threshold_90pct": 63.0,
+      "throughput_recovery_s": 0.09999999997671694
     }
   },
   "replication_k": 1,
   "seed": 42,
-  "throughput": 66.13365550809733,
-  "total_bytes": 602874,
+  "throughput": 58.334860258786065,
+  "total_bytes": 531636,
   "worker_ids": [
     101,
     102

@@ -4,12 +4,12 @@
         "completed_pushes": 48,
         "peak_pushes_per_s": 48
     },
-    "p50_push_latency_ms": 1.0637979999999998,
-    "p99_push_latency_ms": 1.7801055200000007,
-    "p50_pull_latency_ms": 0.9951635,
-    "p99_pull_latency_ms": 1.4951129900000002,
+    "p50_push_latency_ms": 1.3685,
+    "p99_push_latency_ms": 1.6248340000000001,
+    "p50_pull_latency_ms": 1.2649,
+    "p99_pull_latency_ms": 1.598229,
     "total_bytes": 29616,
-    "final_distance": 0.015695361143672548,
+    "final_distance": 0.015695361143672613,
     "recovery_times": [],
     "experiment": "X1_analytical_aggregation",
     "seed": 42,
@@ -28,7 +28,7 @@
     "theoretical_contraction_factor": 0.7,
     "initial_distance": 4.722833910419406,
     "expected_final_distance": 0.015695361143672516,
-    "observed_final_distance": 0.015695361143672548,
-    "maximum_absolute_oracle_error": 4.440892098500626e-16,
+    "observed_final_distance": 0.015695361143672613,
+    "maximum_absolute_oracle_error": 8.881784197001252e-16,
     "oracle_matches": true
 }
