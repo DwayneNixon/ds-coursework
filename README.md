@@ -1,97 +1,81 @@
-# Building a Parameter Server · Distributed Systems Coursework
+# Distributed Parameter Server
 
-Python/gRPC parameter server implementing sparse and dense vector updates, asynchronous tasks, routing and range clocks, consistency modes, communication optimisations, live elasticity, replication and failover.
+A Python/gRPC parameter server for the University of Edinburgh Distributed Systems coursework, covering asynchronous updates, multi-server ownership, consistency, communication optimisations, elasticity and crash recovery.
 
-**Status:** Final audit in progress. Development has included all Parts A–F and X1–X7; verified guarantees are **limited to tested configurations**. A partial postpublication migration failure remains deliberately fail-closed. Do not mistake a selected smoke test for a complete submission audit.
+**Status:** Implementation and evidence audited. The recorded live demonstration is a separate submission requirement. All evaluated fault guarantees are limited to the tested crash-stop model.
 
 ## Quick start
 
-Use **Python 3.13** (the CI version). From the repository root:
+Python **3.13** was used for reproducible automated checks.
 
 ```bash
 python -m pip install -r requirements.txt
 python server.py
 ```
 
-This launches a standalone parameter server at `127.0.0.1:50051`, default vector width 2, SGD learning rate 0.1. In another terminal:
+In a second terminal:
 
 ```bash
-python -m Part_A_Tests.test_ranges
-python -m Part_A_Tests.test_public_api
+python -m tests.part_a.test_ranges
+python -m tests.part_a.test_public_api
 ```
 
-Restart the standalone server before rerunning stateful test scripts: completed Task IDs are deliberately deduplicated. Client workers must have **distinct stable worker IDs**, and retries must preserve the original Task ID and payload. A single request may contain at most 200,000 parameter values by default (configurable via `ParameterServer(max_values_per_request=...)`); the overall model can contain many more keys.
+The standalone server listens on `127.0.0.1:50051`. Restart it before running another stateful demonstration. Stable, **unique worker IDs** are required because Task IDs are deduplicated on retries. Maximum Pull/Push request size is 200,000 parameter values by default (adjustable in the server constructor).
 
-The generated `*_pb2*.py` files are committed, so ordinary checkouts do **not** require running protoc. When changing a `.proto`, install a compatible `grpcio-tools` to regenerate the paired bindings.
+## Where everything lives
 
-## PDF report and submission materials
+| Directory | Purpose |
+|---|---|
+| `ds/` | Parameter-server implementation: client, primary servers, routing, range clocks, manager, consistency and fault tolerance |
+| `harness/` | Reusable worker, deterministic workloads, numerical oracle, metrics, fault/cluster helpers |
+| `tests/part_a` – `tests/part_f` | All 98 tests grouped by coursework requirement |
+| `experiments/` | Canonical evaluation drivers, X1–X7, B/D benchmarks and X3 analysis plots |
+| `configs/` | Seeded JSON configurations (including X6 and X7 fault trials) |
+| `results/` | Final reproducible experiment evidence and the required X4 raw benchmark inputs |
+| `docs/` | Architecture, experiment methods, requirement mapping, testing and demo plan |
+| `scripts/` | Test runner, repository checker, report builder and evidence manifest |
+| `submission/` | Four-page report, editable rendered source and hand-in checklist |
 
-Build the illustrated coursework report directly from the source Markdown and measured figures:
+Root-level Python modules are small **compatibility aliases** for the existing public imports; the substantive implementation is maintained in `ds/`. `server.py` remains a runnable entrypoint, and `*.proto` plus the generated `*_pb2*.py` bindings remain at the root.
+
+## Test the project
+
+Run every Part A–F test script with fresh process state:
+
+```bash
+python -m scripts.check_repository
+python -m scripts.run_all_regressions
+```
+
+For a specific part, use `--part A` through `--part F`. See [testing and reproducibility](docs/TESTING.md). GitHub Actions contains the [full regression](.github/workflows/audit-full.yml) and [X1–X7 integration/evidence](.github/workflows/audit-smoke.yml) workflows.
+
+## Run experiments
+
+```bash
+python -m experiments b1
+python -m experiments b2
+python -m experiments b4           # requires fresh standalone server
+python -m experiments x1
+python -m experiments x2           # 1–8 real server processes, 3 seeds
+python -m experiments x3           # includes consistency plots
+python -m experiments d3
+python -m experiments x4           # uses d3 and D1/D2 reference logs
+python -m experiments x5           # in-process 2 → 4 server migration
+python -m experiments x6           # process-separated live crash + oracle
+python -m experiments x7           # after x6; nine-case fault matrix
+```
+
+The recorded outputs are in `results/`. X6 uses `results/x6_failover/`; X7 uses `results/x7_fault_matrix/`. See [experiment configurations and scope](docs/EXPERIMENTS.md).
+
+## Report and hand-in
 
 ```bash
 python -m pip install -r requirements-report.txt
 python -m scripts.build_report_pdf
 ```
 
-The build checks the final PDF is **at most eight A4 pages** and writes `submission/parameter_server_report.pdf`. The report is generated from [the report source](docs/REPORT_DRAFT.md), the experiment plots and the architecture diagram. See [submission instructions](submission/README.md). The **10-minute demo must be recorded by the submitter**; [this plan](docs/DEMO.md) covers the live two-to-four server scale-up and failover.
+The builder verifies **at most eight A4 pages** and writes `submission/parameter_server_report.pdf`. The [submission checklist](submission/README.md) explains preparing the source archive and recording the required **≤10-minute live demonstration**.
 
-## Regressions
+**Important limitations:** No cross-shard atomic transaction; manager is a coordination dependency; worker identities must not be reused; E4 migration uses in-process server objects whereas X2 and X6 use independent server processes. X7 includes one documented **fail-closed** partial-migration case that preserves safety without restoring availability.
 
-Run all Part A–F test scripts, each in its own Python process with fresh single-server state:
-
-```bash
-python -m scripts.run_all_regressions
-```
-
-Results and individual failure logs are written to `results/audit_regressions/`. This is a more thorough check than the selected GitHub Actions smoke suite. The two CI workflows are:
-
-- `.github/workflows/audit-smoke.yml` — end-to-end smoke, X1–X7 selected experiments and fault scenarios
-- `.github/workflows/audit-full.yml` — all discovered Part A–F test scripts
-
-## Experiments
-
-One dispatcher makes the evaluation commands discoverable:
-
-```bash
-python -m experiments x1
-python -m experiments x2
-python -m experiments x3
-python -m experiments d3
-python -m experiments x4
-python -m experiments x5
-python -m experiments x6
-python -m experiments x7
-```
-
-X4 expects the D3 benchmarking CSV to have been generated first; X7 expects the X6 evidence. The X2 default configuration runs **1–8 real server processes** with three seeds and exports `scaling.csv` and `scaling.png`. See [experiment commands and input/output contracts](docs/EXPERIMENTS.md). The previous `python -m Part_*_Tests.run_*` entrypoints are retained for compatibility.
-
-## Repository map
-
-| Location | Responsibility |
-|---|---|
-| `ds/` | Core implementation: server, client, ownership manager, routing/clocks, consistency, migration/replication and heartbeat/failover components |
-| `harness/` | Worker generator, independent oracle, deterministic workload, scenarios, fault injection and B5 metrics |
-| `experiments/` | Central X1–X7 experiments, C3 clock growth and D3 communication benchmark |
-| `configs/` | Seeded experiment configurations |
-| `Part_A_Tests/` … `Part_F_Tests/` | Requirement-specific regression tests and compatibility command entrypoints |
-| `docs/` | Architecture, experiment recipes, testing, report draft, demo plan and historical implementation notes |
-| `results/` | Recorded trial results and plots |
-| `scripts/` | Complete test-suite runner, repository checks and optional PDF build |
-| `submission/` | Report PDF build output and hand-in checklist |
-| `*.proto`, `*_pb2*.py` | Worker/manager wire contracts and generated bindings |
-| Root `*.py` | Backward-compatible imports and `server.py` CLI; the main implementation lives in `ds/` |
-
-## Read this before submission
-
-[Architecture](docs/ARCHITECTURE.md) · [Requirements audit](docs/REQUIREMENTS_AUDIT.md) · [Experiments](docs/EXPERIMENTS.md) · [Testing](docs/TESTING.md) · [Report](docs/REPORT_DRAFT.md) · [Demo](docs/DEMO.md)
-
-Original milestone histories: [Part A](docs/parts/Part_A_README.md), [Part B](docs/parts/Part_B_README.md), [Part C](docs/parts/Part_C_README.md), [Part D](docs/parts/Part_D_README.md), [Part E](docs/parts/Part_E_README.md), [Part F](docs/parts/Part_F_README.md).
-
-### Explicit boundaries
-
-- Each partition's Push is locally atomic, but an operation spanning multiple servers is **not a distributed transaction**.
-- Replicated ACK fencing and confirmed crash-stop recovery were demonstrated for the tested single-failure, manager-alive configurations, **not** arbitrary partitions, byzantine failures or simultaneous multiple server losses.
-- The F3.4 partial postpublication migration source-crash case remains **fail-closed**; it protects committed state by refusing writes instead of guaranteeing availability.
-- E4's migration and plotted 2→4-server experiment run with in-process server objects; X2 uses separate server processes. Treat them as **different deployment scopes**.
-- The experimental byte counts are serialized Protobuf application payloads, excluding gRPC/TCP headers and backup traffic.
-- Some archived Part READMEs contain commands from the former flat directory structure; this README and the central experiment/test guides are authoritative.
+[Architecture](docs/ARCHITECTURE.md) · [Requirements audit](docs/REQUIREMENTS_AUDIT.md) · [Experiments](docs/EXPERIMENTS.md) · [Testing](docs/TESTING.md) · [Demo](docs/DEMO.md)

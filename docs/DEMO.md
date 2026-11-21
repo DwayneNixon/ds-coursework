@@ -8,7 +8,7 @@ Record at 1080p with readable terminal zoom. Use a **clean checkout** with `pyth
 |---|---|---|
 | 00:00–00:40 | GitHub tree / `README.md` | “We built a Python/gRPC parameter server with asynchronous clients, range routing, consistency, elasticity and crash recovery.” Show the final revision |
 | 00:40–01:30 | `ds/`, `harness/`, `experiments/`, architecture diagram | Describe worker→shard→manager, note each primary owns one range and operations across shards are not transactions |
-| 01:30–02:20 | `python -m Part_A_Tests.test_server_dependencies` and a short client example | Demonstrate a waiting dependency, then success and exactly-once retry behaviour |
+| 01:30–02:20 | `python -m tests.part_a.test_server_dependencies` and a short client example | Demonstrate a waiting dependency, then success and exactly-once retry behaviour |
 | 02:20–03:00 | X1 `oracle.csv` and X2 scaling plot | Point out analytic correctness and the non-monotonic measured 1–8-server performance |
 | 03:00–05:15 | **Live X5:** `python -m experiments x5` | Start workers on two servers, **add servers under load**, show ownership redistribution and continued successful Pushes; show per-key oracle and recorded throughput plot |
 | 05:15–07:55 | **Live X6:** `python -m experiments x6` | Show live manager/server processes and worker requests, kill the primary after Pull/before Push, observe heartbeat detection, backup promotion, write-fence/repair and resumed Pushes. Show final oracle error and recovery decomposition |
@@ -20,7 +20,7 @@ Record at 1080p with readable terminal zoom. Use a **clean checkout** with `pyth
 
 ```bash
 python -m pip install -r requirements.txt
-python -m Part_A_Tests.test_server_dependencies
+python -m tests.part_a.test_server_dependencies
 python -m experiments x1
 python -m experiments x2
 python -m experiments x5

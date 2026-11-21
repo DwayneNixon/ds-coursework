@@ -9,10 +9,10 @@ Run from a **clean repository root** after `python -m pip install -r requirement
 | **X3** consistency | `python -m experiments x3` | `results/c5_evaluation/{summary,convergence}.csv`, four plots | Sequential vs bounded τ=1,2,4 vs eventual; with/without straggler |
 | **X4** optimisation | `python -m experiments d3`, then `python -m experiments x4` | D1/D2 historical logs + `results/d3_benchmark/comparison.csv`, `results/x4_comparison/{comparison.csv,comparison.png,summary.json}` | Bytes vs latency for cache, compression, batching |
 | **X5** elasticity | `python -m experiments x5` | Timestamped `results/e4_elasticity/trial_*/` directories: ops, events, timeseries, plots, summary | 2→4 servers under load; in-process movement |
-| **X6** failover | `python -m experiments x6` | `Part_F_Tests/f51_x6_config.json`, `results/f51_x6/summary.json`, event/ops/iteration CSV | Real process crash after Pull/before Push, independent fixed-gradient oracle |
-| **X7** failure matrix | `python -m experiments x7` (after X6) | `Part_F_Tests/f52_x7_config.json`, `results/f52_x7/{matrix.csv,summary.json}`, logs | Nine fault cases; document recovered vs fail-closed |
+| **X6** failover | `python -m experiments x6` | `configs/x6_failover.json`, `results/x6_failover/summary.json`, event/ops/iteration CSV | Real process crash after Pull/before Push, independent fixed-gradient oracle |
+| **X7** failure matrix | `python -m experiments x7` (after X6) | `configs/x7_fault_matrix.json`, `results/x7_fault_matrix/{matrix.csv,summary.json}`, logs | Nine fault cases; document recovered vs fail-closed |
 
-The old `python -m Part_*_Tests.run_*` commands remain as compatibility launchers; use the central commands for a readable project story. **Some experiments overwrite files in `results/`; preserve the prior submitted evidence elsewhere before rerunning.**
+Use `python -m experiments ...` as the canonical launcher for every experiment. Redundant old launchers have been removed. **Some experiments overwrite files in `results/`; preserve the prior submitted evidence elsewhere before rerunning.**
 
 ## X1: analytic multiworker aggregation
 
@@ -60,7 +60,7 @@ The committed seeded X6 trial used k=1 backup, three server processes, a live ma
 
 ## X7: failure matrix
 
-The committed `results/f52_x7/` contains nine configured cases: confirmed server crash, staged migration crashes, postpublication partial migration, worker crash under bounded delay, delayed/dropped Push and lost ACK, dropped transfer staging. Eight cases recovered or handled within the injected model; **one deliberate `EXPECTED_FAIL_CLOSED`** (source crash following partial postpublication migration) preserves safety by leaving writes fenced. A fail-closed outcome is **not** availability or automatic recovery.
+The committed `results/x7_fault_matrix/` contains nine configured cases: confirmed server crash, staged migration crashes, postpublication partial migration, worker crash under bounded delay, delayed/dropped Push and lost ACK, dropped transfer staging. Eight cases recovered or handled within the injected model; **one deliberate `EXPECTED_FAIL_CLOSED`** (source crash following partial postpublication migration) preserves safety by leaving writes fenced. A fail-closed outcome is **not** availability or automatic recovery.
 
 ## Provenance
 

@@ -7,6 +7,6 @@
 - [Report source](REPORT_DRAFT.md): source-grounded content for the checked ≤8-page PDF export
 - [Demo plan](DEMO.md): 10-minute recording guide using X5 and X6
 - [Submission checklist](../submission/README.md): output PDF, repository ZIP and recorded video
-- [Parts A–F implementation histories](parts/): development notes and historical outputs
+- [Organised regression tests](../tests/): Part A–F tests grouped by requirement
 
-Older milestone command paths are preserved as compatibility launchers. Use the root README and Testing/Experiments guides for current commands.
+Use the root README and Testing/Experiments guides for all current commands. Historical duplicate milestone READMEs were removed to keep one authoritative guide.

@@ -13,7 +13,7 @@ Expected runtime uses localhost gRPC and spawns multiple Python processes in F/X
 
 ## Tests
 
-`python -m scripts.run_all_regressions` discovers all `Part_A_Tests/test_*.py` through `Part_F_Tests/test_*.py`, launches **each test script in an isolated Python subprocess** and supplies a freshly started standalone `server.py` on port 50051 where a legacy test needs it. Results are written to `results/audit_regressions/summary.json` with a raw log per test. A test's nonzero exit/timeout is a failure; do not count skipped tests as pass.
+`python -m scripts.run_all_regressions` discovers all `tests/part_a/test_*.py` through `tests/part_f/test_*.py`, launches **each test script in an isolated Python subprocess** and supplies a freshly started standalone `server.py` on port 50051 where a legacy test needs it. Results are written to `results/audit_regressions/summary.json` with a raw log per test. A test's nonzero exit/timeout is a failure; do not count skipped tests as pass.
 
 For part-level isolation:
 
@@ -28,26 +28,26 @@ python -m scripts.run_all_regressions --part F
 
 Do not run the full regression runner concurrently with other tests requiring a *fresh* server on port 50051; launch after the smoke experiment has finished.
 
-A previous full clean-checkout audit found 94/97 scripts passing. Its three failures were fixed: E1 selective migration was head-of-line blocked by the global Push lock, and F31/F32 used obsolete process entrypoint paths. **The complete post-fix, post-restructure suite must pass again before marking submission ready.**
+The audited implementation previously passed 98/98 test scripts. After this organisation change, require a **fresh 98/98 pass against the final branch revision**; do not rely on the earlier run.
 
 ## Automated verification
 
 - `.github/workflows/audit-smoke.yml` runs imports/syntax, targeted A/B/C/E/F tests, X1/X2, D3/X4, live X6 and X7. It uploads raw evidence even if an experiment fails. Successful CI for a prior commit does not prove current head.
-- `.github/workflows/audit-full.yml` runs all discovered A–F test scripts (approximately 98). It uploads the individual script logs and `summary.json`. The suite is slower because E4 and F tests spawn processes and exercise timeouts.
+- `.github/workflows/audit-full.yml` runs all discovered A–F test scripts (98). It uploads the individual script logs and `summary.json`. The suite is slower because E4 and F tests spawn processes and exercise timeouts.
 - Use the GitHub Actions run for **the exact PR head SHA** when reporting PASS or reproducing performance values.
 
 ## Focused commands
 
 ```bash
-python -m Part_A_Tests.test_request_limits
-python -m Part_A_Tests.test_server_dependencies
-python -m Part_A_Tests.test_rule_registration
-python -m Part_B_Tests.test_b2_worker_dense_range
-python -m Part_B_Tests.test_b2_million_key_distributed
-python -m Part_C_Tests.test_c1_worker_harness
-python -m Part_E_Tests.test_e12_source_transfer
-python -m unittest -v Part_F_Tests.test_f31_replica_promotion
-python -m unittest -v Part_F_Tests.test_f32_replication_repair
+python -m tests.part_a.test_request_limits
+python -m tests.part_a.test_server_dependencies
+python -m tests.part_a.test_rule_registration
+python -m tests.part_b.test_b2_worker_dense_range
+python -m tests.part_b.test_b2_million_key_distributed
+python -m tests.part_c.test_c1_worker_harness
+python -m tests.part_e.test_e12_source_transfer
+python -m unittest -v tests.part_f.test_f31_replica_promotion
+python -m unittest -v tests.part_f.test_f32_replication_repair
 ```
 
 The legacy B4/B5 integration smoke needs a *fresh* server started in another terminal:
@@ -55,7 +55,7 @@ The legacy B4/B5 integration smoke needs a *fresh* server started in another ter
 ```bash
 python server.py
 # separate terminal:
-python -m Part_B_Tests.run_b4
+python -m experiments b4
 ```
 
 Individual server-backed tests may assume virgin zero-valued keys and unused Task IDs; restart the standalone process between runs. The F3/F4 tests start their own manager and server processes.

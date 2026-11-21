@@ -97,4 +97,4 @@ For tested F scenarios, servers heartbeat to a manager, a primary sends ordered 
 | Recovery | Confirmed crash-stop promotion + replica repair | Durable consensus log offers stronger availability/safety under partitions, outside tested scope |
 | Migration | Snapshot, dirty-catchup, fenced transfer | Fully process-separated online migration is more general but requires a transactional cross-process handoff |
 
-For exact historical design decisions and local test notes, see [the six original Part histories](parts/).
+For requirement-by-requirement evidence and the tested limitations, see [the coverage audit](REQUIREMENTS_AUDIT.md).
