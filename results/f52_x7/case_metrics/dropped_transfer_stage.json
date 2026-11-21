@@ -1,0 +1,8 @@
+{
+  "acknowledged_unique_pushes": 2,
+  "injection": "drop_manager_to_destination_stage_rpc",
+  "ownership_epoch_after": 1,
+  "ownership_epoch_before": 1,
+  "replica_sequence": 2,
+  "unpublished_transfer_aborted": true
+}

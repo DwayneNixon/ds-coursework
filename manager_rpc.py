@@ -13,6 +13,33 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
     def __init__(self, manager):
         self.manager = manager
 
+    def Heartbeat(self, request, context):
+        """Record an observed heartbeat without changing ownership."""
+        try:
+            self.manager.record_heartbeat(request.server_id)
+        except ValueError as error:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
+        except KeyError as error:
+            context.abort(grpc.StatusCode.NOT_FOUND, str(error.args[0]))
+        except RuntimeError as error:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
+        return pb.HeartbeatReply(accepted=True)
+
+    def WorkerHeartbeat(self, request, context):
+        """F4: observe worker liveness, not progress or task completion."""
+        try:
+            self.manager.record_worker_heartbeat(request.worker_id)
+        except ValueError as error:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
+        except KeyError as error:
+            context.abort(grpc.StatusCode.NOT_FOUND, str(error.args[0]))
+        except RuntimeError as error:
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
+        return pb.WorkerHeartbeatReply(
+            accepted=True,
+            membership_epoch=self.manager.consistency_gate.membership_epoch,
+        )
+
     def GetMap(self, request, context):
         table = self.manager.get_map()
 
@@ -107,8 +134,8 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
         gate = self._get_consistency_gate(context)
 
         try:
-            starting_iteration = gate.register_worker(
-                request.worker_id
+            starting_iteration, membership_epoch = (
+                self.manager.join_training_worker(request.worker_id)
             )
 
         except ValueError as error:
@@ -119,7 +146,7 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
 
         return pb.JoinWorkerReply(
             starting_iteration=starting_iteration,
-            membership_epoch=gate.membership_epoch,
+            membership_epoch=membership_epoch,
         )
 
     def LeaveWorker(self, request, context):
@@ -128,8 +155,8 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
         gate = self._get_consistency_gate(context)
 
         try:
-            completed_iteration = gate.leave_worker(
-                request.worker_id
+            completed_iteration, membership_epoch = (
+                self.manager.leave_training_worker(request.worker_id)
             )
 
         except ValueError as error:
@@ -140,7 +167,7 @@ class ManagerService(pb_grpc.OwnershipManagerServicer):
 
         return pb.LeaveWorkerReply(
             completed_iteration=completed_iteration,
-            membership_epoch=gate.membership_epoch,
+            membership_epoch=membership_epoch,
         )
 
 

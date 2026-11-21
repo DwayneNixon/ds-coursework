@@ -1,0 +1,13 @@
+COMMAND: C:\Users\dwayn\miniconda3\python.exe -m unittest -v test_f52_x7_faults.MessageFaultCases.test_dropped_push_request_retries_without_extra_application
+
+STDOUT:
+
+
+STDERR:
+test_dropped_push_request_retries_without_extra_application (test_f52_x7_faults.MessageFaultCases.test_dropped_push_request_retries_without_extra_application) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.197s
+
+OK
+

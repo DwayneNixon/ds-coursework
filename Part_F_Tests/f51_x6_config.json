@@ -1,0 +1,21 @@
+{
+  "experiment": "X6_fixed_gradient_server_kill",
+  "seed": 42,
+  "cluster": {
+    "servers": 3,
+    "replication": 1
+  },
+  "workers": [101, 102],
+  "width": 2,
+  "gradient": "fixed",
+  "pre_fault_s": 6.2,
+  "post_fault_s": 6.2,
+  "compute_ms": 25.0,
+  "batch_size": 1,
+  "fault": {
+    "action": "kill_server",
+    "target": "first-primary",
+    "phase": "after_pull_before_push"
+  },
+  "output_dir": "results/f51_x6"
+}

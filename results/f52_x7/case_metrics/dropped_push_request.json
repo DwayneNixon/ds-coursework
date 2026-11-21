@@ -1,0 +1,8 @@
+{
+  "acknowledged_unique_pushes": 1,
+  "final_first_component": -0.1,
+  "forwarded": 1,
+  "injection": "drop_first_push_before_grpc_send",
+  "replica_sequence": 1,
+  "rpc_attempts": 2
+}

@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rmanager.proto\"\x0f\n\rGetMapRequest\"m\n\rPartitionInfo\x12\x14\n\x0cpartition_id\x18\x01 \x01(\t\x12\r\n\x05\x62\x65gin\x18\x02 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x03 \x01(\x04\x12\x1b\n\x13\x65nd_is_keyspace_end\x18\x04 \x01(\x08\x12\r\n\x05owner\x18\x05 \x01(\t\"@\n\x0bGetMapReply\x12\r\n\x05\x65poch\x18\x01 \x01(\x04\x12\"\n\npartitions\x18\x02 \x03(\x0b\x32\x0e.PartitionInfo\"J\n\x0f\x43\x61nStartRequest\x12\x11\n\titeration\x18\x01 \x01(\x04\x12\x16\n\tworker_id\x18\x02 \x01(\rH\x00\x88\x01\x01\x42\x0c\n\n_worker_id\"<\n\rCanStartReply\x12\x0f\n\x07\x61llowed\x18\x01 \x01(\x08\x12\x1a\n\x12required_iteration\x18\x02 \x01(\x04\"@\n\x18\x43ompleteIterationRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x11\n\titeration\x18\x02 \x01(\x04\"5\n\x16\x43ompleteIterationReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\"&\n\x11JoinWorkerRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"G\n\x0fJoinWorkerReply\x12\x1a\n\x12starting_iteration\x18\x01 \x01(\x04\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\"\'\n\x12LeaveWorkerRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"I\n\x10LeaveWorkerReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\x32\x9c\x02\n\x10OwnershipManager\x12&\n\x06GetMap\x12\x0e.GetMapRequest\x1a\x0c.GetMapReply\x12,\n\x08\x43\x61nStart\x12\x10.CanStartRequest\x1a\x0e.CanStartReply\x12G\n\x11\x43ompleteIteration\x12\x19.CompleteIterationRequest\x1a\x17.CompleteIterationReply\x12\x32\n\nJoinWorker\x12\x12.JoinWorkerRequest\x1a\x10.JoinWorkerReply\x12\x35\n\x0bLeaveWorker\x12\x13.LeaveWorkerRequest\x1a\x11.LeaveWorkerReplyb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rmanager.proto\"\x0f\n\rGetMapRequest\"m\n\rPartitionInfo\x12\x14\n\x0cpartition_id\x18\x01 \x01(\t\x12\r\n\x05\x62\x65gin\x18\x02 \x01(\x04\x12\x0b\n\x03\x65nd\x18\x03 \x01(\x04\x12\x1b\n\x13\x65nd_is_keyspace_end\x18\x04 \x01(\x08\x12\r\n\x05owner\x18\x05 \x01(\t\"@\n\x0bGetMapReply\x12\r\n\x05\x65poch\x18\x01 \x01(\x04\x12\"\n\npartitions\x18\x02 \x03(\x0b\x32\x0e.PartitionInfo\"J\n\x0f\x43\x61nStartRequest\x12\x11\n\titeration\x18\x01 \x01(\x04\x12\x16\n\tworker_id\x18\x02 \x01(\rH\x00\x88\x01\x01\x42\x0c\n\n_worker_id\"<\n\rCanStartReply\x12\x0f\n\x07\x61llowed\x18\x01 \x01(\x08\x12\x1a\n\x12required_iteration\x18\x02 \x01(\x04\"@\n\x18\x43ompleteIterationRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\x12\x11\n\titeration\x18\x02 \x01(\x04\"5\n\x16\x43ompleteIterationReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\"&\n\x11JoinWorkerRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"G\n\x0fJoinWorkerReply\x12\x1a\n\x12starting_iteration\x18\x01 \x01(\x04\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\"\'\n\x12LeaveWorkerRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"I\n\x10LeaveWorkerReply\x12\x1b\n\x13\x63ompleted_iteration\x18\x01 \x01(\x04\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\"%\n\x10HeartbeatRequest\x12\x11\n\tserver_id\x18\x01 \x01(\t\"\"\n\x0eHeartbeatReply\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\"+\n\x16WorkerHeartbeatRequest\x12\x11\n\tworker_id\x18\x01 \x01(\r\"B\n\x14WorkerHeartbeatReply\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\x12\x18\n\x10membership_epoch\x18\x02 \x01(\x04\x32\x90\x03\n\x10OwnershipManager\x12&\n\x06GetMap\x12\x0e.GetMapRequest\x1a\x0c.GetMapReply\x12/\n\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x0f.HeartbeatReply\x12,\n\x08\x43\x61nStart\x12\x10.CanStartRequest\x1a\x0e.CanStartReply\x12G\n\x11\x43ompleteIteration\x12\x19.CompleteIterationRequest\x1a\x17.CompleteIterationReply\x12\x32\n\nJoinWorker\x12\x12.JoinWorkerRequest\x1a\x10.JoinWorkerReply\x12\x35\n\x0bLeaveWorker\x12\x13.LeaveWorkerRequest\x1a\x11.LeaveWorkerReply\x12\x41\n\x0fWorkerHeartbeat\x12\x17.WorkerHeartbeatRequest\x1a\x15.WorkerHeartbeatReplyb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -53,6 +53,14 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_LEAVEWORKERREQUEST']._serialized_end=622
   _globals['_LEAVEWORKERREPLY']._serialized_start=624
   _globals['_LEAVEWORKERREPLY']._serialized_end=697
-  _globals['_OWNERSHIPMANAGER']._serialized_start=700
-  _globals['_OWNERSHIPMANAGER']._serialized_end=984
+  _globals['_HEARTBEATREQUEST']._serialized_start=699
+  _globals['_HEARTBEATREQUEST']._serialized_end=736
+  _globals['_HEARTBEATREPLY']._serialized_start=738
+  _globals['_HEARTBEATREPLY']._serialized_end=772
+  _globals['_WORKERHEARTBEATREQUEST']._serialized_start=774
+  _globals['_WORKERHEARTBEATREQUEST']._serialized_end=817
+  _globals['_WORKERHEARTBEATREPLY']._serialized_start=819
+  _globals['_WORKERHEARTBEATREPLY']._serialized_end=885
+  _globals['_OWNERSHIPMANAGER']._serialized_start=888
+  _globals['_OWNERSHIPMANAGER']._serialized_end=1288
 # @@protoc_insertion_point(module_scope)

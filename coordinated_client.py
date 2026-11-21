@@ -1,11 +1,12 @@
-
 import time
+import threading
 import grpc
 
 import manager_pb2 as pb
 import manager_pb2_grpc as pb_grpc
 from bisect import bisect_right
 from routing import KEY_SPACE_END
+from worker_heartbeat import WorkerHeartbeatSender
 
 
 def clock_covers_push(target, segments, worker_id, iteration):
@@ -77,6 +78,9 @@ class CoordinatedClient:
         total_iterations,
         poll_ms=20,
         barrier_timeout_s=30,
+        worker_heartbeats=False,
+        heartbeat_interval_s=0.1,
+        heartbeat_rpc_timeout_s=0.4,
     ):
         self.client = client
         self.worker_id = worker_id
@@ -89,15 +93,54 @@ class CoordinatedClient:
         self.poll_seconds = poll_ms / 1000
         self.barrier_timeout_s = barrier_timeout_s
 
+        # F4.2: opt-in automatic worker heartbeats. No new manager RPCs or
+        # changes to legacy C/E workers are needed. The sender starts on the
+        # first training operation, or after a successful dynamic join.
+        if type(worker_heartbeats) is not bool:
+            raise ValueError("worker_heartbeats must be a boolean")
+        self._heartbeat_lock = threading.Lock()
+        self._heartbeat_running = False
+        self._closed = False
+        self._heartbeat_sender = (
+            WorkerHeartbeatSender(
+                manager_address,
+                worker_id,
+                interval_s=heartbeat_interval_s,
+                rpc_timeout_s=heartbeat_rpc_timeout_s,
+            ) if worker_heartbeats else None
+        )
+
         self.channel = grpc.insecure_channel(manager_address)
         self.manager = pb_grpc.OwnershipManagerStub(
             self.channel
         )
 
 
+    def _ensure_worker_heartbeat(self):
+        """Start the background liveness signal at most once per worker."""
+        with self._heartbeat_lock:
+            if self._closed:
+                raise RuntimeError("Coordinated worker is already closed")
+            if self._heartbeat_sender is None or self._left:
+                return
+            if self._heartbeat_sender.session_excluded:
+                raise RuntimeError("Worker heartbeat session was excluded")
+            if not self._heartbeat_running:
+                self._heartbeat_sender.start()
+                self._heartbeat_running = True
+
+    def _stop_worker_heartbeat(self):
+        """Stop locally; do not modify membership at the manager."""
+        with self._heartbeat_lock:
+            if self._heartbeat_running:
+                self._heartbeat_sender.stop()
+                self._heartbeat_running = False
+
     def join_training(self):
         """Register a new worker and receive its starting iteration."""
 
+        if self._closed:
+            raise RuntimeError("Coordinated worker is already closed")
         if self._left or self._joined_dynamically:
             raise RuntimeError(
                 "Worker has already joined or left training"
@@ -115,12 +158,17 @@ class CoordinatedClient:
 
         self.iteration = reply.starting_iteration
         self._joined_dynamically = True
+        # Do not heartbeat before JoinWorker: the manager would reject an
+        # unregistered ID and the sender would retire the session.
+        self._ensure_worker_heartbeat()
 
         return self.iteration
 
     def leave_training(self):
         """Gracefully leave after the last Push was reported."""
 
+        if self._closed:
+            raise RuntimeError("Coordinated worker is already closed")
         if self._left:
             raise RuntimeError("Worker has already left training")
 
@@ -140,10 +188,15 @@ class CoordinatedClient:
             )
 
         self._left = True
+        # First commit the graceful departure at the manager; only then
+        # stop the sender. A failed LeaveWorker RPC keeps heartbeats active.
+        self._stop_worker_heartbeat()
         return reply.completed_iteration
 
     def pull(self, target, deps=None):
-        """Reuse the normal distributed Pull."""
+        """Reuse the normal distributed Pull, keeping active workers alive."""
+        if not self._left:
+            self._ensure_worker_heartbeat()
         return self.client.pull(target, deps=deps)
 
 
@@ -158,6 +211,7 @@ class CoordinatedClient:
                 "Previous iteration has not been reported"
             )
 
+        self._ensure_worker_heartbeat()
         task = self.client.push(
             target,
             gradients,
@@ -180,6 +234,7 @@ class CoordinatedClient:
         if self._left:
             raise RuntimeError("Departed worker cannot start an iteration")
 
+        self._ensure_worker_heartbeat()
         deadline = (
             time.monotonic() + self.barrier_timeout_s
         )
@@ -263,5 +318,20 @@ class CoordinatedClient:
             self.wait_for_turn(self.iteration)
 
     def close(self):
-        self.channel.close()
-        self.client.close()
+        """Stop the sender and close channels; never imply graceful leave.
+
+        If a worker exits without LeaveWorker, its absence must still be
+        detected by the F4 manager's heartbeat timeout.
+        """
+        with self._heartbeat_lock:
+            if self._closed:
+                return
+            self._closed = True
+
+        try:
+            self._stop_worker_heartbeat()
+        finally:
+            try:
+                self.channel.close()
+            finally:
+                self.client.close()

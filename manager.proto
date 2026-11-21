@@ -4,6 +4,9 @@ syntax = "proto3";
 service OwnershipManager {
     rpc GetMap(GetMapRequest) returns (GetMapReply);
 
+    // F1.1: Server-initiated liveness registration.
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatReply);
+
     rpc CanStart(CanStartRequest) returns (CanStartReply);
 
     rpc CompleteIteration(CompleteIterationRequest)
@@ -13,6 +16,10 @@ service OwnershipManager {
     rpc JoinWorker(JoinWorkerRequest) returns (JoinWorkerReply);
 
     rpc LeaveWorker(LeaveWorkerRequest) returns (LeaveWorkerReply);
+
+    // F4: independent liveness signal, unrelated to iteration progress.
+    rpc WorkerHeartbeat(WorkerHeartbeatRequest)
+        returns (WorkerHeartbeatReply);
 }
 
 message GetMapRequest {}
@@ -67,5 +74,24 @@ message LeaveWorkerRequest {
 
 message LeaveWorkerReply {
     uint64 completed_iteration = 1;
+    uint64 membership_epoch = 2;
+}
+
+// Only the manager's reception timestamp is used for timeout decisions.
+message HeartbeatRequest {
+    string server_id = 1;
+}
+
+message HeartbeatReply {
+    bool accepted = 1;
+}
+
+// F4: the manager timestamps arrival rather than trusting a worker clock.
+message WorkerHeartbeatRequest {
+    uint32 worker_id = 1;
+}
+
+message WorkerHeartbeatReply {
+    bool accepted = 1;
     uint64 membership_epoch = 2;
 }

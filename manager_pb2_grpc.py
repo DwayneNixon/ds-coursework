@@ -39,6 +39,11 @@ class OwnershipManagerStub:
                 request_serializer=manager__pb2.GetMapRequest.SerializeToString,
                 response_deserializer=manager__pb2.GetMapReply.FromString,
                 _registered_method=True)
+        self.Heartbeat = channel.unary_unary(
+                '/OwnershipManager/Heartbeat',
+                request_serializer=manager__pb2.HeartbeatRequest.SerializeToString,
+                response_deserializer=manager__pb2.HeartbeatReply.FromString,
+                _registered_method=True)
         self.CanStart = channel.unary_unary(
                 '/OwnershipManager/CanStart',
                 request_serializer=manager__pb2.CanStartRequest.SerializeToString,
@@ -59,6 +64,11 @@ class OwnershipManagerStub:
                 request_serializer=manager__pb2.LeaveWorkerRequest.SerializeToString,
                 response_deserializer=manager__pb2.LeaveWorkerReply.FromString,
                 _registered_method=True)
+        self.WorkerHeartbeat = channel.unary_unary(
+                '/OwnershipManager/WorkerHeartbeat',
+                request_serializer=manager__pb2.WorkerHeartbeatRequest.SerializeToString,
+                response_deserializer=manager__pb2.WorkerHeartbeatReply.FromString,
+                _registered_method=True)
 
 
 class OwnershipManagerServicer:
@@ -66,6 +76,13 @@ class OwnershipManagerServicer:
 
     def GetMap(self, request, context):
         """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Heartbeat(self, request, context):
+        """F1.1: Server-initiated liveness registration.
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -95,6 +112,13 @@ class OwnershipManagerServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def WorkerHeartbeat(self, request, context):
+        """F4: independent liveness signal, unrelated to iteration progress.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_OwnershipManagerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -102,6 +126,11 @@ def add_OwnershipManagerServicer_to_server(servicer, server):
                     servicer.GetMap,
                     request_deserializer=manager__pb2.GetMapRequest.FromString,
                     response_serializer=manager__pb2.GetMapReply.SerializeToString,
+            ),
+            'Heartbeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.Heartbeat,
+                    request_deserializer=manager__pb2.HeartbeatRequest.FromString,
+                    response_serializer=manager__pb2.HeartbeatReply.SerializeToString,
             ),
             'CanStart': grpc.unary_unary_rpc_method_handler(
                     servicer.CanStart,
@@ -122,6 +151,11 @@ def add_OwnershipManagerServicer_to_server(servicer, server):
                     servicer.LeaveWorker,
                     request_deserializer=manager__pb2.LeaveWorkerRequest.FromString,
                     response_serializer=manager__pb2.LeaveWorkerReply.SerializeToString,
+            ),
+            'WorkerHeartbeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.WorkerHeartbeat,
+                    request_deserializer=manager__pb2.WorkerHeartbeatRequest.FromString,
+                    response_serializer=manager__pb2.WorkerHeartbeatReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -151,6 +185,33 @@ class OwnershipManager:
             '/OwnershipManager/GetMap',
             manager__pb2.GetMapRequest.SerializeToString,
             manager__pb2.GetMapReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Heartbeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/OwnershipManager/Heartbeat',
+            manager__pb2.HeartbeatRequest.SerializeToString,
+            manager__pb2.HeartbeatReply.FromString,
             options,
             channel_credentials,
             insecure,
@@ -259,6 +320,33 @@ class OwnershipManager:
             '/OwnershipManager/LeaveWorker',
             manager__pb2.LeaveWorkerRequest.SerializeToString,
             manager__pb2.LeaveWorkerReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def WorkerHeartbeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/OwnershipManager/WorkerHeartbeat',
+            manager__pb2.WorkerHeartbeatRequest.SerializeToString,
+            manager__pb2.WorkerHeartbeatReply.FromString,
             options,
             channel_credentials,
             insecure,

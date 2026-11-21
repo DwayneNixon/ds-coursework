@@ -11,6 +11,23 @@ from routing import split_push, merge_pull
 from manager_rpc import fetch_ownership_map
 import grpc
 import hashlib
+import math
+import time
+from parameter_client import TaskWaitTimeout
+
+def is_failover_retryable(error):
+    """Retry only outcomes that may be transient or uncertain."""
+    if isinstance(error, TaskWaitTimeout):
+        return True
+    return (
+        isinstance(error, grpc.RpcError)
+        and (
+            error.code() in (grpc.StatusCode.UNAVAILABLE,
+                             grpc.StatusCode.DEADLINE_EXCEEDED)
+            or is_not_owner(error)
+        )
+    )
+
 
 def is_not_owner(error):
     return (
@@ -24,7 +41,8 @@ class DistributedTask(Task):
 
     def __init__(
         self, operation, target, routes, tasks, width,
-        deps=None, client=None, chunks=None, iteration=None, required_clock=None
+        deps=None, client=None, chunks=None, iteration=None,
+        required_clock=None, pinned_partitions=None,
     ):
         super().__init__()
 
@@ -38,6 +56,10 @@ class DistributedTask(Task):
         self._failures = {}
         self._iteration = iteration
         self._required_clock = dict(required_clock or {})
+        # F3.3b: capture the original partition identity and boundaries.
+        # A crash retry must not silently repartition an uncertain Push.
+        self._pinned_partitions = dict(pinned_partitions or {})
+        self._original_tasks = dict(tasks)
 
         self._remaining = len(tasks)
         self._replies = {}
@@ -129,7 +151,22 @@ class DistributedTask(Task):
             self._finish_success(replies)
             return
 
-        # Do not automatically retry uncertain failures.
+        # F3.3b: explicit opt-in. Reuse the original physical request and
+        # Task ID for failures whose outcome might be uncertain.
+        if (
+            self._client is not None
+            and self._client._failover_retries
+            and self._client.manager_address is not None
+            and all(is_failover_retryable(error) for error in failures.values())
+        ):
+            threading.Thread(
+                target=self._retry_after_failover,
+                args=(tuple(failures),),
+                daemon=True,
+            ).start()
+            return
+
+        # Legacy E1 rerouting remains unchanged when opt-in is disabled.
         other_errors = [
             error for error in failures.values()
             if not is_not_owner(error)
@@ -156,6 +193,96 @@ class DistributedTask(Task):
             args=(tuple(failures),),
             daemon=True,
         ).start()
+
+
+    def _retry_after_failover(self, failed_routes):
+        """Retry uncertain physical requests with their exact serialized bytes.
+
+        The overall deadline is shared across all failed shards. Successful
+        shards are never repeated. The manager may retain the old map while
+        failure detection and replica repair are still in progress.
+        """
+        client = self._client
+        deadline = time.monotonic() + client._failover_timeout_s
+        try:
+            for original_route in failed_routes:
+                original_task = self._original_tasks[original_route]
+                pinned = self._pinned_partitions[original_route]
+                target = client._subtarget(original_route)
+                last_error = self._failures[original_route]
+                attempts = 0
+
+                succeeded = False
+                while time.monotonic() < deadline:
+                    try:
+                        client.refresh_map()
+                        # Use one immutable table snapshot for routing and
+                        # partition validation, even if another task refreshes.
+                        table = client.table
+                        new_routes = (
+                            table.split_range(target.start, target.stop)
+                            if isinstance(target, range)
+                            else table.split_keys(target)
+                        )
+                        if len(new_routes) != 1:
+                            raise RuntimeError(
+                                "Unsafe failover replay: partition was split"
+                            )
+                        new_route = new_routes[0]
+                        partition = next(
+                            p for p in table.partitions
+                            if p.partition_id == new_route.partition_id
+                        )
+                        current = (
+                            partition.partition_id,
+                            partition.begin,
+                            partition.end,
+                        )
+                        if current != pinned:
+                            raise RuntimeError(
+                                "Unsafe failover replay: partition identity "
+                                "or boundaries changed"
+                            )
+
+                        # No new Push Task ID, clock, compression decision,
+                        # or D1 cache ID is allocated here.
+                        physical = client.clients[new_route.owner]
+                        attempt = physical.replay_physical_request(
+                            original_task, self.operation,
+                        )
+                        self.tasks.append((new_route, attempt))
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            break
+                        response = attempt.wait(timeout_ms=min(
+                            client._failover_attempt_wait_ms,
+                            max(1, math.ceil(remaining * 1000)),
+                        ))
+                        if self.operation == "push" and not response.accepted:
+                            raise RuntimeError("Replayed Push was not accepted")
+                        if self.operation == "pull":
+                            self._replies[original_route] = list(response.values)
+                        succeeded = True
+                        break
+                    except Exception as error:
+                        if not is_failover_retryable(error):
+                            raise
+                        last_error = error
+                        attempts += 1
+                        remaining = deadline - time.monotonic()
+                        if remaining > 0:
+                            time.sleep(min(client._failover_retry_interval_s, remaining))
+                if not succeeded:
+                    raise TimeoutError(
+                        "Failover retry deadline exceeded for "
+                        f"partition {original_route.partition_id} "
+                        f"after {attempts} unsuccessful attempt(s); "
+                        "the operation's outcome remains uncertain"
+                    ) from last_error
+
+            self._finish_success(dict(self._replies))
+        except Exception as error:
+            self._future.set_exception(error)
 
 
     def _retry_rejected(self, failed_routes):
@@ -287,9 +414,37 @@ class DistributedParameterClient:
         self, routing_table, worker_id, value_width=2,
         required_clock=None, key_caching=False,
         value_compression=False,
+        failover_retries=False,
+        failover_timeout_s=10.0,
+        failover_retry_interval_s=0.05,
+        failover_attempt_timeout_s=0.5,
     ):
         if type(value_width) is not int or value_width < 1:
             raise ValueError("Invalid vector width")
+
+        # F3.3b is explicitly enabled for fault-tolerant workers. Older
+        # A-E clients retain their original rerouting and RPC behaviour.
+        if type(failover_retries) is not bool:
+            raise TypeError("failover_retries must be a boolean")
+        for name, value in (
+            ("failover_timeout_s", failover_timeout_s),
+            ("failover_retry_interval_s", failover_retry_interval_s),
+            ("failover_attempt_timeout_s", failover_attempt_timeout_s),
+        ):
+            if (type(value) not in (int, float)
+                or not math.isfinite(value) or value <= 0):
+                raise ValueError(f"{name} must be positive and finite")
+        if failover_retries and worker_id is None:
+            raise ValueError("Failover retries require a stable worker ID")
+
+        self._failover_retries = failover_retries
+        self._failover_timeout_s = float(failover_timeout_s)
+        self._failover_retry_interval_s = float(failover_retry_interval_s)
+        self._failover_attempt_timeout_s = float(failover_attempt_timeout_s)
+        self._failover_attempt_wait_ms = (
+            math.ceil(self._failover_attempt_timeout_s * 1000) + 250
+        )
+        self._map_lock = threading.Lock()
 
         self.table = routing_table
         self.value_width = value_width
@@ -318,6 +473,10 @@ class DistributedParameterClient:
                 worker_id=worker_id,
                 value_compression=value_compression,
                 task_id_allocator=self._allocate_task_id,
+                rpc_timeout_s=(
+                    self._failover_attempt_timeout_s
+                    if self._failover_retries else None
+                ),
             )
             for owner in owners
         }
@@ -385,6 +544,18 @@ class DistributedParameterClient:
 
         return self.table.split_keys(target)
 
+    def _capture_partitions(self, routes):
+        """Pin partition identity/boundaries at submission time."""
+        by_id = {part.partition_id: part for part in self.table.partitions}
+        return {
+            route: (
+                route.partition_id,
+                by_id[route.partition_id].begin,
+                by_id[route.partition_id].end,
+            )
+            for route in routes
+        }
+
     def _subtarget(self, route):
         if hasattr(route, "keys"):
             return list(route.keys)
@@ -423,6 +594,7 @@ class DistributedParameterClient:
             target, gradients, routes, width
         )
 
+        pinned_partitions = self._capture_partitions(routes)
         tasks = []
 
         for route in routes:
@@ -448,6 +620,7 @@ class DistributedParameterClient:
             chunks=chunks,
             iteration=iteration,
             required_clock=required_clock,
+            pinned_partitions=pinned_partitions,
         )
 
   
@@ -456,6 +629,7 @@ class DistributedParameterClient:
         deps = self._check_deps(deps)
 
         routes = self._routes(target)
+        pinned_partitions = self._capture_partitions(routes)
         tasks = []
 
         for route in routes:
@@ -476,6 +650,7 @@ class DistributedParameterClient:
             deps,
             client=self,
             required_clock=required_clock,
+            pinned_partitions=pinned_partitions,
         )
 
 
@@ -573,6 +748,10 @@ class DistributedParameterClient:
         cls, manager_address, worker_id,
         value_width=2, key_caching=False,
         value_compression=False,
+        failover_retries=False,
+        failover_timeout_s=10.0,
+        failover_retry_interval_s=0.05,
+        failover_attempt_timeout_s=0.5,
     ):
         """Create a distributed client using manager discovery."""
 
@@ -584,6 +763,10 @@ class DistributedParameterClient:
             value_width=value_width,
             key_caching=key_caching,
             value_compression=value_compression,
+            failover_retries=failover_retries,
+            failover_timeout_s=failover_timeout_s,
+            failover_retry_interval_s=failover_retry_interval_s,
+            failover_attempt_timeout_s=failover_attempt_timeout_s,
         )
 
         client.manager_address = manager_address
@@ -592,43 +775,42 @@ class DistributedParameterClient:
     
     def refresh_map(self):
         """Refresh the cached ownership map from the manager."""
-
         if self.manager_address is None:
             raise ValueError(
                 "This client was not connected through a manager"
             )
 
-        new_table = fetch_ownership_map(self.manager_address)
+        # Several failed physical shards may recover concurrently.
+        # Serialize map publication and client creation.
+        with self._map_lock:
+            new_table = fetch_ownership_map(self.manager_address)
 
-        # Never replace a newer cached map with an older one.
-        if new_table.epoch < self.table.epoch:
-            raise ValueError("Manager returned an older ownership map")
+            if new_table.epoch < self.table.epoch:
+                raise ValueError("Manager returned an older ownership map")
 
-        if new_table.epoch == self.table.epoch:
-            if new_table.partitions != self.table.partitions:
-                raise ValueError(
-                    "Ownership changed without an epoch increment"
-                )
+            if new_table.epoch == self.table.epoch:
+                if new_table.partitions != self.table.partitions:
+                    raise ValueError(
+                        "Ownership changed without an epoch increment"
+                    )
+                return False
 
-            return False
+            for partition in new_table.partitions:
+                owner = partition.owner
+                if owner not in self.clients:
+                    self.clients[owner] = ParameterClient(
+                        owner,
+                        worker_id=self.worker_id,
+                        value_compression=self.value_compression,
+                        task_id_allocator=self._allocate_task_id,
+                        rpc_timeout_s=(
+                            self._failover_attempt_timeout_s
+                            if self._failover_retries else None
+                        ),
+                    )
 
-        # Open connections to newly discovered owners.
-        # All physical clients share the distributed Task-ID allocator.
-        for partition in new_table.partitions:
-            owner = partition.owner
-
-            if owner not in self.clients:
-                self.clients[owner] = ParameterClient(
-                    owner,
-                    worker_id=self.worker_id,
-                    value_compression=self.value_compression,
-                    task_id_allocator=self._allocate_task_id,
-                )
-
-        # Publish the new map locally only after preparing clients.
-        self.table = new_table
-
-        return True
+            self.table = new_table
+            return True
 
 
     def close(self):

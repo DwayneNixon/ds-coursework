@@ -52,7 +52,8 @@ class ConsistencyGate:
     def _allowed(self, required):
         """Check progress of currently active workers only."""
 
-        return all(
+        # An empty training cohort must not accidentally pass a barrier.
+        return bool(self.active_workers) and all(
             self.completed[worker] >= required
             for worker in self.active_workers
         )
@@ -77,8 +78,8 @@ class ConsistencyGate:
 
             return self._allowed(required)
 
-    def wait_until_allowed(self, iteration, timeout_ms=None):
-        """Block until all required active workers have progressed."""
+    def wait_until_allowed(self, iteration, timeout_ms=None, worker_id=None):
+        """Block for a barrier; optionally reject a worker excluded while waiting."""
 
         required = self.required_iteration(iteration)
 
@@ -91,10 +92,19 @@ class ConsistencyGate:
         )
 
         with self.condition:
+            if worker_id is not None and worker_id not in self.active_workers:
+                raise ValueError("Unknown or inactive worker")
+
             allowed = self.condition.wait_for(
-                lambda: self._allowed(required),
+                lambda: (
+                    (worker_id is not None and worker_id not in self.active_workers)
+                    or self._allowed(required)
+                ),
                 timeout=timeout,
             )
+
+            if worker_id is not None and worker_id not in self.active_workers:
+                raise ValueError("Worker was excluded from training")
 
             if not allowed:
                 raise TimeoutError(
@@ -144,9 +154,10 @@ class ConsistencyGate:
             if worker_id in self.completed:
                 raise ValueError("Worker ID has already been used")
 
-            baseline = min(
-                self.completed[worker]
-                for worker in self.active_workers
+            baseline = (
+                min(self.completed[worker] for worker in self.active_workers)
+                if self.active_workers
+                else max(self.completed.values(), default=0)
             )
 
             self.completed[worker_id] = baseline
@@ -182,6 +193,22 @@ class ConsistencyGate:
             self.condition.notify_all()
 
             return last_iteration
+
+    def exclude_failed_worker(self, worker_id):
+        """F4: remove a crashed worker without requiring a clean final Push.
+
+        Historical iteration and vector-clock references remain valid. Unlike
+        graceful leave, this can exclude the last active worker, leaving an
+        empty cohort (no one may pass a barrier until a new worker joins).
+        """
+        with self.condition:
+            if worker_id not in self.active_workers:
+                raise ValueError("Unknown or inactive worker")
+            progress = self.completed[worker_id]
+            self.active_workers.remove(worker_id)
+            self.membership_epoch += 1
+            self.condition.notify_all()
+            return progress
 
     def snapshot(self):
         """Return historical progress, including departed workers."""

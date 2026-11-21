@@ -1,6 +1,7 @@
 
 import grpc
 import threading
+import math
 import parameter_server_pb2 as pb
 import parameter_server_pb2_grpc as pb_grpc
 
@@ -47,6 +48,12 @@ class Task:
                 timeout=timeout_seconds
             )
         except FutureTimeoutError as error:
+            # concurrent.futures.TimeoutError is also Python's built-in
+            # TimeoutError. A *completed* task may carry a real TimeoutError
+            # (e.g. recovery deadline exhausted). Do not mislabel that as
+            # a timeout of the caller's wait operation.
+            if self._future.done() and self._future.exception() is error:
+                raise
             raise TaskWaitTimeout(
                 "TIMEOUT: task has not completed"
             ) from error
@@ -95,6 +102,7 @@ class ParameterClient:
         worker_id=None,
         value_compression=False,
         task_id_allocator=None,
+        rpc_timeout_s=None,
     ):
         if worker_id is not None:
             if type(worker_id) is not int or not (0 <= worker_id < 2**32):
@@ -103,6 +111,14 @@ class ParameterClient:
         if task_id_allocator is not None and not callable(task_id_allocator):
             raise TypeError("task_id_allocator must be callable")
 
+        if rpc_timeout_s is not None and (
+            type(rpc_timeout_s) not in (int, float)
+            or not math.isfinite(rpc_timeout_s)
+            or rpc_timeout_s <= 0
+        ):
+            raise ValueError("RPC timeout must be positive and finite")
+
+        self.rpc_timeout_s = rpc_timeout_s
         self.worker_id = worker_id
 
         # Distributed clients may share one allocator across servers.
@@ -226,7 +242,14 @@ class ParameterClient:
         def send_request():
             """Submit the RPC to the server."""
             try:
-                rpc_future = rpc_method.future(request)
+                # F3.3b: opt-in deadline for failure-aware workers.
+                # Legacy clients retain their original unbounded RPC call.
+                if self.rpc_timeout_s is None:
+                    rpc_future = rpc_method.future(request)
+                else:
+                    rpc_future = rpc_method.future(
+                        request, timeout=self.rpc_timeout_s,
+                    )
                 rpc_future.add_done_callback(rpc_finished)
             except Exception as error:
                 task._future.set_exception(error)
@@ -526,6 +549,54 @@ class ParameterClient:
 
         return task
 
+
+
+    def replay_physical_request(self, original_task, operation):
+        """F3.3b: replay an existing physical request without allocating an ID.
+
+        Used only after a failed attempt by DistributedParameterClient. The
+        original Protobuf bytes, Task ID, compression and key-cache fields are
+        preserved. A D1 cache miss is repaired via the existing safe Pull
+        registration path, then the original request is replayed unchanged.
+        """
+        if operation not in ("push", "pull"):
+            raise ValueError("Unknown replay operation")
+        if not isinstance(original_task, Task) or not original_task.done():
+            raise ValueError("Expected a completed original physical Task")
+        if original_task._future.exception() is None:
+            raise ValueError("Only failed physical requests may be replayed")
+
+        field = (
+            "_push_request_bytes" if operation == "push"
+            else "_pull_request_bytes"
+        )
+        request_bytes = getattr(original_task, field, None)
+        if not isinstance(request_bytes, bytes):
+            raise ValueError("Original serialized request is unavailable")
+        if operation == "push" and original_task.task_id is None:
+            raise ValueError("Safe Push replay requires an original Task ID")
+
+        request = pb.PushRequest() if operation == "push" else pb.PullRequest()
+        request.ParseFromString(request_bytes)
+
+        if operation == "push":
+            task_id = original_task.task_id
+            if (
+                not request.HasField("task_id")
+                or (request.task_id.worker_id, request.task_id.sequence) != task_id
+            ):
+                raise ValueError("Serialized Push Task ID does not match the task")
+
+        task = self._schedule_with_cache(
+            self.stub.Push if operation == "push" else self.stub.Pull,
+            request,
+            deps=None,  # The original attempt has already passed local deps.
+            task_id=original_task.task_id,
+            cache_id=getattr(original_task, "_cache_id", None),
+            cache_keys=getattr(original_task, "_cache_keys", None),
+        )
+        setattr(task, field, request_bytes)
+        return task
 
 
     def retry_push(self, original_task):
