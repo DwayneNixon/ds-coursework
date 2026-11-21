@@ -1,0 +1,13 @@
+COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v Part_F_Tests.test_f34_migration_crash_recovery.MigrationCrashTests.test_partial_postpublication_source_crash_stays_fail_closed
+
+STDOUT:
+
+
+STDERR:
+test_partial_postpublication_source_crash_stays_fail_closed (Part_F_Tests.test_f34_migration_crash_recovery.MigrationCrashTests.test_partial_postpublication_source_crash_stays_fail_closed) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.838s
+
+OK
+

@@ -1,0 +1,34 @@
+{
+    "throughput": {
+        "window_s": 1,
+        "completed_pushes": 48,
+        "peak_pushes_per_s": 48
+    },
+    "p50_push_latency_ms": 2.1758705,
+    "p99_push_latency_ms": 2.48276349,
+    "p50_pull_latency_ms": 2.0522644999999997,
+    "p99_pull_latency_ms": 2.70390214,
+    "total_bytes": 29616,
+    "final_distance": 0.015695361143672548,
+    "recovery_times": [],
+    "experiment": "X1_analytical_aggregation",
+    "seed": 42,
+    "mode": "sequential",
+    "num_workers": 3,
+    "worker_ids": [
+        1101,
+        1102,
+        1103
+    ],
+    "iterations_per_worker": 16,
+    "num_keys": 16,
+    "value_width": 2,
+    "gradient_mode": "target_diff",
+    "learning_rate": 0.1,
+    "theoretical_contraction_factor": 0.7,
+    "initial_distance": 4.722833910419406,
+    "expected_final_distance": 0.015695361143672516,
+    "observed_final_distance": 0.015695361143672548,
+    "maximum_absolute_oracle_error": 4.440892098500626e-16,
+    "oracle_matches": true
+}

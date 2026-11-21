@@ -1,0 +1,12 @@
+{
+  "acknowledged_unique_pushes": 1,
+  "final_first_component": -0.1,
+  "forwarded": 2,
+  "injection": "drop_first_successful_push_reply",
+  "replayed_task_id": [
+    71,
+    601
+  ],
+  "replica_sequence": 1,
+  "rpc_attempts": 2
+}

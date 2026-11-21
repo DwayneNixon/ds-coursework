@@ -1,0 +1,15 @@
+COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v Part_F_Tests.test_f52_x7_faults.BoundedWorkerCrashCase.test_real_worker_kill_unblocks_bounded_delay_and_keeps_weights
+
+STDOUT:
+X7 bounded worker crash exclusion latency: 0.651s
+
+
+STDERR:
+test_real_worker_kill_unblocks_bounded_delay_and_keeps_weights (Part_F_Tests.test_f52_x7_faults.BoundedWorkerCrashCase.test_real_worker_kill_unblocks_bounded_delay_and_keeps_weights)
+Crash an actual coordinated worker subprocess while tau=1 blocks peer. ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.697s
+
+OK
+

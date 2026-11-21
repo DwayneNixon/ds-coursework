@@ -1,0 +1,13 @@
+COMMAND: /opt/hostedtoolcache/Python/3.13.18/x64/bin/python -m unittest -v Part_F_Tests.test_f34_migration_crash_recovery.MigrationCrashTests.test_destination_killed_while_staged_source_recovers
+
+STDOUT:
+
+
+STDERR:
+test_destination_killed_while_staged_source_recovers (Part_F_Tests.test_f34_migration_crash_recovery.MigrationCrashTests.test_destination_killed_while_staged_source_recovers) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 1.939s
+
+OK
+

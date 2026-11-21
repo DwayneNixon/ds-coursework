@@ -1,0 +1,154 @@
+{
+  "cases": [
+    {
+      "case_id": "x6_primary_mid_iteration",
+      "metrics": {
+        "T_detect_s": 0.5013280019999229,
+        "T_promote_s": 0.028613450000079865,
+        "T_resume_s": 0.10057934099995691,
+        "completed_pushes": 748,
+        "file": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x6/summary.json",
+        "oracle_max_error": 9.094947017729282e-13,
+        "postfault_only_recovery_s": 1.6000000000000227,
+        "recovery_s": 0.6305207929999597,
+        "seed": 42,
+        "sliding_recovery_s": 0.10000000000002274,
+        "theta_pre": 64.0,
+        "threshold_90pct": 57.6,
+        "x6_events_sha256": "d494d6492d237adcbb0c1c36fe034a6c893cfc8704d2846bd86c8e9b8eeba366",
+        "x6_summary_sha256": "a30b42fc63262d31d61221e4416ae018046e13c31902babbed9f129d2802c955"
+      },
+      "result": "PASS",
+      "test_duration_s": 0.004439,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/x6_primary_mid_iteration.txt"
+    },
+    {
+      "case_id": "migration_source_during_staging",
+      "metrics": {},
+      "result": "PASS",
+      "test_duration_s": 2.010005,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/migration_source_during_staging.txt"
+    },
+    {
+      "case_id": "migration_destination_during_staging",
+      "metrics": {},
+      "result": "PASS",
+      "test_duration_s": 2.069642,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/migration_destination_during_staging.txt"
+    },
+    {
+      "case_id": "migration_partial_postpublication",
+      "metrics": {},
+      "result": "EXPECTED_FAIL_CLOSED",
+      "test_duration_s": 1.969582,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/migration_partial_postpublication.txt"
+    },
+    {
+      "case_id": "worker_bounded_crash",
+      "metrics": {
+        "active_worker_ids": [
+          22
+        ],
+        "completed_survivor_pushes": 3,
+        "consistency": "bounded",
+        "crash_exclusion_latency_s": 0.6513653750000685,
+        "final_weights": [
+          -0.30000000000000004,
+          -0.30000000000000004
+        ],
+        "historical_progress": {
+          "11": 0,
+          "22": 3
+        },
+        "injection": "kill_real_coordinated_worker_process",
+        "tau": 1
+      },
+      "result": "PASS",
+      "test_duration_s": 1.834807,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/worker_bounded_crash.txt"
+    },
+    {
+      "case_id": "delayed_push_request",
+      "metrics": {
+        "acknowledged_unique_pushes": 2,
+        "final_first_component": -0.2,
+        "forwarded": 2,
+        "injected_delay_s": 0.25,
+        "injection": "delay_first_push_before_grpc_send",
+        "measured_first_rpc_s": 0.252508908999971,
+        "replica_sequence": 2,
+        "rpc_attempts": 2
+      },
+      "result": "PASS",
+      "test_duration_s": 2.200443,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/delayed_push_request.txt"
+    },
+    {
+      "case_id": "dropped_push_request",
+      "metrics": {
+        "acknowledged_unique_pushes": 1,
+        "final_first_component": -0.1,
+        "forwarded": 1,
+        "injection": "drop_first_push_before_grpc_send",
+        "replica_sequence": 1,
+        "rpc_attempts": 2
+      },
+      "result": "PASS",
+      "test_duration_s": 1.770404,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/dropped_push_request.txt"
+    },
+    {
+      "case_id": "dropped_push_ack",
+      "metrics": {
+        "acknowledged_unique_pushes": 1,
+        "final_first_component": -0.1,
+        "forwarded": 2,
+        "injection": "drop_first_successful_push_reply",
+        "replayed_task_id": [
+          71,
+          601
+        ],
+        "replica_sequence": 1,
+        "rpc_attempts": 2
+      },
+      "result": "PASS",
+      "test_duration_s": 1.913627,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/dropped_push_ack.txt"
+    },
+    {
+      "case_id": "dropped_transfer_stage",
+      "metrics": {
+        "acknowledged_unique_pushes": 2,
+        "injection": "drop_manager_to_destination_stage_rpc",
+        "ownership_epoch_after": 1,
+        "ownership_epoch_before": 1,
+        "replica_sequence": 2,
+        "unpublished_transfer_aborted": true
+      },
+      "result": "PASS",
+      "test_duration_s": 1.906033,
+      "test_log": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/case_logs/dropped_transfer_stage.txt"
+    }
+  ],
+  "expected_fail_closed_rows": [
+    "migration_partial_postpublication"
+  ],
+  "experiment": "X7_failure_matrix",
+  "failed_rows": [],
+  "full_matrix": true,
+  "guarantee_scope": "Confirmed single-process crash-stop / test-controlled one-shot RPC faults, live manager",
+  "known_limits": [
+    "Partial published E1 transfer with crashed source may remain write-fenced",
+    "Worker timeout exclusion does not fence old in-flight Push at parameter servers",
+    "One-shot RPC shims do not prove availability under arbitrary packet loss or partitions",
+    "E1 replicated migration uses a global write fence rather than concurrent writes",
+    "Only X6 provides a continuous, five-second-prebaseline throughput experiment here"
+  ],
+  "matrix_file": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x7/matrix.csv",
+  "run_duration_s": 15.681070832999922,
+  "seed": 42,
+  "status": "PASS",
+  "total_rows": 9,
+  "verified_rows": 9,
+  "x6_evidence": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x6/summary.json"
+}

@@ -1,0 +1,17 @@
+Verified X6 summary, oracle, events and successful ops.csv count.
+{
+  "T_detect_s": 0.5013280019999229,
+  "T_promote_s": 0.028613450000079865,
+  "T_resume_s": 0.10057934099995691,
+  "completed_pushes": 748,
+  "file": "/home/runner/work/ds-coursework/ds-coursework/results/audit_x6/summary.json",
+  "oracle_max_error": 9.094947017729282e-13,
+  "postfault_only_recovery_s": 1.6000000000000227,
+  "recovery_s": 0.6305207929999597,
+  "seed": 42,
+  "sliding_recovery_s": 0.10000000000002274,
+  "theta_pre": 64.0,
+  "threshold_90pct": 57.6,
+  "x6_events_sha256": "d494d6492d237adcbb0c1c36fe034a6c893cfc8704d2846bd86c8e9b8eeba366",
+  "x6_summary_sha256": "a30b42fc63262d31d61221e4416ae018046e13c31902babbed9f129d2802c955"
+}
