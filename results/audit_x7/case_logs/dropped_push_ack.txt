@@ -7,7 +7,7 @@ STDERR:
 test_lost_push_reply_replay_same_task_id_exactly_once (Part_F_Tests.test_f52_x7_faults.MessageFaultCases.test_lost_push_reply_replay_same_task_id_exactly_once) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.511s
+Ran 1 test in 1.738s
 
 OK
 

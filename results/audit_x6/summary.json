@@ -1,12 +1,12 @@
 {
   "batch_size": 1,
   "bytes_scope": "worker Protobuf payload only (not backup replication/TCP)",
-  "completed_pushes": 762,
+  "completed_pushes": 776,
   "duration_post_fault_s": 6.2,
   "duration_pre_fault_s": 6.2,
   "experiment": "X6_fixed_gradient_server_kill",
   "fault_phase": "after_pull_before_push",
-  "final_distance": 1.9259771700146093e-12,
+  "final_distance": 2.0177412067481384e-12,
   "final_distance_reference": "independent fixed-gradient offline oracle",
   "limit": "confirmed crash-stop, one server failure, live manager",
   "offline_oracle": {
@@ -14,24 +14,24 @@
     "max_absolute_error": 9.094947017729282e-13,
     "mismatches": []
   },
-  "p50_pull_latency_ms": 1.7797,
-  "p50_push_latency_ms": 4.034795000000001,
-  "p99_pull_latency_ms": 3.214393599999997,
-  "p99_push_latency_ms": 6.286136199999996,
+  "p50_pull_latency_ms": 1.5099900000000002,
+  "p50_push_latency_ms": 3.6971350000000003,
+  "p99_pull_latency_ms": 2.79415,
+  "p99_push_latency_ms": 6.2260375,
   "recovery_times": {
     "decomposition": {
-      "T_detect_s": 0.4973286609999832,
-      "T_promote_s": 0.008131229000014173,
-      "T_rec_first_push_s": 0.6044840229999977,
-      "T_resume_to_first_push_s": 0.09902413300000035,
-      "controller_ready_s": 0.577117845999993
+      "T_detect_s": 0.5103013369999871,
+      "T_promote_s": 0.019176401000009946,
+      "T_rec_first_push_s": 0.6187064149999912,
+      "T_resume_to_first_push_s": 0.08922867699999415,
+      "controller_ready_s": 0.5902729049999778
     },
     "throughput": {
       "baseline_pushes_per_second": [
-        64,
         66,
         64,
-        64,
+        66,
+        66,
         66
       ],
       "measurement_note": "1-s sliding windows before t_fault+1 include pre-fault pushes; postfault_only_recovery_s is an additional conservative diagnostic.",
@@ -39,12 +39,12 @@
       "sample_step_s": 0.1,
       "samples": [
         {
-          "completed_pushes_per_s": 59,
+          "completed_pushes_per_s": 60,
           "post_fault_pushes_per_s": 0,
           "relative_s": 0.1
         },
         {
-          "completed_pushes_per_s": 52,
+          "completed_pushes_per_s": 54,
           "post_fault_pushes_per_s": 0,
           "relative_s": 0.2
         },
@@ -59,23 +59,23 @@
           "relative_s": 0.4
         },
         {
-          "completed_pushes_per_s": 33,
+          "completed_pushes_per_s": 34,
           "post_fault_pushes_per_s": 0,
           "relative_s": 0.5
         },
         {
-          "completed_pushes_per_s": 26,
+          "completed_pushes_per_s": 27,
           "post_fault_pushes_per_s": 0,
           "relative_s": 0.6
         },
         {
-          "completed_pushes_per_s": 27,
-          "post_fault_pushes_per_s": 7,
+          "completed_pushes_per_s": 26,
+          "post_fault_pushes_per_s": 6,
           "relative_s": 0.7
         },
         {
-          "completed_pushes_per_s": 28,
-          "post_fault_pushes_per_s": 14,
+          "completed_pushes_per_s": 26,
+          "post_fault_pushes_per_s": 12,
           "relative_s": 0.8
         },
         {
@@ -109,8 +109,8 @@
           "relative_s": 1.4
         },
         {
-          "completed_pushes_per_s": 58,
-          "post_fault_pushes_per_s": 58,
+          "completed_pushes_per_s": 60,
+          "post_fault_pushes_per_s": 60,
           "relative_s": 1.5
         },
         {
@@ -119,23 +119,23 @@
           "relative_s": 1.6
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 1.7
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 1.8
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 1.9
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.0
         },
         {
@@ -144,18 +144,18 @@
           "relative_s": 2.1
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.2
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.3
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.4
         },
         {
@@ -164,163 +164,163 @@
           "relative_s": 2.5
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.6
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.7
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.8
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 2.9
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.0
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.1
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.2
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.3
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.4
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.5
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.6
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.7
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.8
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 3.9
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.0
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.1
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 65,
+          "post_fault_pushes_per_s": 65,
           "relative_s": 4.2
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.3
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.4
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 65,
+          "post_fault_pushes_per_s": 65,
           "relative_s": 4.5
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.6
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.7
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.8
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 4.9
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.0
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.1
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.2
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.3
         },
         {
-          "completed_pushes_per_s": 65,
-          "post_fault_pushes_per_s": 65,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.4
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 67,
+          "post_fault_pushes_per_s": 67,
           "relative_s": 5.5
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.6
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.7
         },
         {
@@ -329,35 +329,30 @@
           "relative_s": 5.8
         },
         {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
           "relative_s": 5.9
-        },
-        {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
-          "relative_s": 6.0
-        },
-        {
-          "completed_pushes_per_s": 64,
-          "post_fault_pushes_per_s": 64,
-          "relative_s": 6.1
         },
         {
           "completed_pushes_per_s": 66,
           "post_fault_pushes_per_s": 66,
-          "relative_s": 6.2
+          "relative_s": 6.0
+        },
+        {
+          "completed_pushes_per_s": 66,
+          "post_fault_pushes_per_s": 66,
+          "relative_s": 6.1
         }
       ],
-      "theta_pre": 64.0,
-      "threshold_90pct": 57.6,
+      "theta_pre": 66.0,
+      "threshold_90pct": 59.4,
       "throughput_recovery_s": 0.09999999999999432
     }
   },
   "replication_k": 1,
   "seed": 42,
-  "throughput": 61.37130824448061,
-  "total_bytes": 558832,
+  "throughput": 62.537350951649856,
+  "total_bytes": 569169,
   "worker_ids": [
     101,
     102

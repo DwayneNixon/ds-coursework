@@ -4,7 +4,7 @@
   ],
   "completed_survivor_pushes": 3,
   "consistency": "bounded",
-  "crash_exclusion_latency_s": 0.6797323800000186,
+  "crash_exclusion_latency_s": 0.6477958750000141,
   "final_weights": [
     -0.30000000000000004,
     -0.30000000000000004

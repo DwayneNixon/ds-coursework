@@ -18,7 +18,7 @@
   "replication": 0,
   "consistency": "eventual",
   "cluster": "one localhost manager, independent Python server processes",
-  "throughput_ratio_8_to_1": 1.1373401498157125,
+  "throughput_ratio_8_to_1": 1.0667808422286755,
   "data_files": [
     "trials.csv",
     "scaling.csv",
@@ -28,58 +28,58 @@
     {
       "servers": 1,
       "trials": 3,
-      "throughput_median": 88.30839970688274,
-      "push_p99_median_ms": 53.66502621,
-      "pull_p99_median_ms": 41.716652529999955
+      "throughput_median": 103.87954414768195,
+      "push_p99_median_ms": 42.34183617999999,
+      "pull_p99_median_ms": 34.86391918999999
     },
     {
       "servers": 2,
       "trials": 3,
-      "throughput_median": 152.62952307789965,
-      "push_p99_median_ms": 29.391372399999874,
-      "pull_p99_median_ms": 23.340038699999987
+      "throughput_median": 181.4101051464997,
+      "push_p99_median_ms": 19.917616739999996,
+      "pull_p99_median_ms": 38.67937930999994
     },
     {
       "servers": 3,
       "trials": 3,
-      "throughput_median": 168.72010422110722,
-      "push_p99_median_ms": 22.23930497,
-      "pull_p99_median_ms": 22.5111106
+      "throughput_median": 196.52229141788607,
+      "push_p99_median_ms": 18.850714029999978,
+      "pull_p99_median_ms": 17.80683612999998
     },
     {
       "servers": 4,
       "trials": 3,
-      "throughput_median": 142.84278384137662,
-      "push_p99_median_ms": 39.37718314999986,
-      "pull_p99_median_ms": 35.3373118699999
+      "throughput_median": 166.2252803684416,
+      "push_p99_median_ms": 56.11770474999997,
+      "pull_p99_median_ms": 23.02861469999981
     },
     {
       "servers": 5,
       "trials": 3,
-      "throughput_median": 140.0325323929321,
-      "push_p99_median_ms": 22.07371291999999,
-      "pull_p99_median_ms": 22.12671189999998
+      "throughput_median": 158.960216110705,
+      "push_p99_median_ms": 21.628955499999996,
+      "pull_p99_median_ms": 21.26260917999999
     },
     {
       "servers": 6,
       "trials": 3,
-      "throughput_median": 118.63364007558519,
-      "push_p99_median_ms": 33.7055789199998,
-      "pull_p99_median_ms": 57.933778409999974
+      "throughput_median": 132.383163985122,
+      "push_p99_median_ms": 22.918721939999983,
+      "pull_p99_median_ms": 49.72292885999998
     },
     {
       "servers": 7,
       "trials": 3,
-      "throughput_median": 115.79993742750528,
-      "push_p99_median_ms": 27.836564899999985,
-      "pull_p99_median_ms": 25.63782897999997
+      "throughput_median": 128.51190114741283,
+      "push_p99_median_ms": 26.692015919999992,
+      "pull_p99_median_ms": 26.905565739999986
     },
     {
       "servers": 8,
       "trials": 3,
-      "throughput_median": 100.43668855261184,
-      "push_p99_median_ms": 45.53449706999989,
-      "pull_p99_median_ms": 33.97833624999981
+      "throughput_median": 110.81670759619503,
+      "push_p99_median_ms": 57.15276637999998,
+      "pull_p99_median_ms": 59.277084499999965
     }
   ],
   "caveat": "Single-host shared CPU/memory and increasing RPC fan-out/reassembly cost limit interpretation as true multi-host scale."

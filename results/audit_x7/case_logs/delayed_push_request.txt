@@ -7,7 +7,7 @@ STDERR:
 test_delayed_push_rpc_preserves_acknowledged_order (Part_F_Tests.test_f52_x7_faults.MessageFaultCases.test_delayed_push_rpc_preserves_acknowledged_order) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.794s
+Ran 1 test in 2.043s
 
 OK
 

@@ -4,7 +4,7 @@
   "forwarded": 2,
   "injected_delay_s": 0.25,
   "injection": "delay_first_push_before_grpc_send",
-  "measured_first_rpc_s": 0.2532569760000172,
+  "measured_first_rpc_s": 0.2525203099999942,
   "replica_sequence": 2,
   "rpc_attempts": 2
 }
