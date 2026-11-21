@@ -362,7 +362,10 @@ def build_document(source, destination, figure_paths, font_size):
                 fp=figure_paths[active_figure]
                 if fp.exists():
                     img=Image(str(fp))
-                    scale=min(available/img.imageWidth, 182/img.imageHeight)
+                    # The X5 transition plot is shorter so the conclusion
+                    # fits on the same final page as the X7 failure matrix.
+                    image_limit = 140 if active_figure == 5 else 182
+                    scale=min(available/img.imageWidth, image_limit/img.imageHeight)
                     img.drawWidth=img.imageWidth*scale
                     img.drawHeight=img.imageHeight*scale
                     story.append(Spacer(1,3))
@@ -405,6 +408,8 @@ def main():
     source=insert_verified_results(Path(args.source).read_text(encoding="utf-8"))
     output=Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
+    # Keep the exact, fully substituted text next to the generated PDF.
+    output.with_suffix(".md").write_text(source, encoding="utf-8")
     with tempfile.TemporaryDirectory(prefix="ds_report_") as scratch:
         x1=Path(scratch)/"x1.png"
         make_x1_plot(ROOT,x1)
