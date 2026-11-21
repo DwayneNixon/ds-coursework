@@ -24,6 +24,17 @@ Restart the standalone server before rerunning stateful test scripts: completed 
 
 The generated `*_pb2*.py` files are committed, so ordinary checkouts do **not** require running protoc. When changing a `.proto`, install a compatible `grpcio-tools` to regenerate the paired bindings.
 
+## PDF report and submission materials
+
+Build the illustrated coursework report directly from the source Markdown and measured figures:
+
+```bash
+python -m pip install -r requirements-report.txt
+python -m scripts.build_report_pdf
+```
+
+The build checks the final PDF is **at most eight A4 pages** and writes `submission/parameter_server_report.pdf`. The report is generated from [the report source](docs/REPORT_DRAFT.md), the experiment plots and the architecture diagram. See [submission instructions](submission/README.md). The **10-minute demo must be recorded by the submitter**; [this plan](docs/DEMO.md) covers the live two-to-four server scale-up and failover.
+
 ## Regressions
 
 Run all Part A–F test scripts, each in its own Python process with fresh single-server state:
@@ -65,13 +76,14 @@ X4 expects the D3 benchmarking CSV to have been generated first; X7 expects the 
 | `Part_A_Tests/` … `Part_F_Tests/` | Requirement-specific regression tests and compatibility command entrypoints |
 | `docs/` | Architecture, experiment recipes, testing, report draft, demo plan and historical implementation notes |
 | `results/` | Recorded trial results and plots |
-| `scripts/` | Complete test-suite runner |
+| `scripts/` | Complete test-suite runner, repository checks and optional PDF build |
+| `submission/` | Report PDF build output and hand-in checklist |
 | `*.proto`, `*_pb2*.py` | Worker/manager wire contracts and generated bindings |
 | Root `*.py` | Backward-compatible imports and `server.py` CLI; the main implementation lives in `ds/` |
 
 ## Read this before submission
 
-[Architecture and design](docs/ARCHITECTURE.md) · [Experiments and evidence](docs/EXPERIMENTS.md) · [Regression instructions](docs/TESTING.md) · [Report draft](docs/REPORT_DRAFT.md) · [10-minute demo plan](docs/DEMO.md)
+[Architecture](docs/ARCHITECTURE.md) · [Requirements audit](docs/REQUIREMENTS_AUDIT.md) · [Experiments](docs/EXPERIMENTS.md) · [Testing](docs/TESTING.md) · [Report](docs/REPORT_DRAFT.md) · [Demo](docs/DEMO.md)
 
 Original milestone histories: [Part A](docs/parts/Part_A_README.md), [Part B](docs/parts/Part_B_README.md), [Part C](docs/parts/Part_C_README.md), [Part D](docs/parts/Part_D_README.md), [Part E](docs/parts/Part_E_README.md), [Part F](docs/parts/Part_F_README.md).
 
