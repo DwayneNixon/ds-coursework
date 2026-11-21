@@ -24,6 +24,8 @@ def run_worker(
     on_iteration=None,
     on_operation=None,
     on_iteration_record=None,
+    before_push_barrier=None,
+    after_push_barrier=None,
 ):
     """Run a simulated parameter-server worker."""
 
@@ -85,6 +87,11 @@ def run_worker(
 
                 gradients.append(gradient)
 
+        # Optional synchronous-round mode: every worker must finish its
+        # Pull before any worker starts its Push for the current round.
+        if before_push_barrier is not None:
+            before_push_barrier.wait(timeout=30)
+
         # 5. Push gradients to the server
         push_task, _ = measure_operation(
             create_task=lambda: client.push(
@@ -102,6 +109,10 @@ def run_worker(
 
         push_task.wait(timeout_ms=5000)
 
+        # Complete the entire aggregation round before the next Pull.
+        # The barrier action, if configured, can sample a stable model.
+        if after_push_barrier is not None:
+            after_push_barrier.wait(timeout=30)
 
         iteration_end_ns = time.time_ns()
 
