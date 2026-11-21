@@ -3,7 +3,7 @@
 Run from project root:
     python run_f52_x7.py --config f52_x7_config.json
 
-Requires an already completed X6 run at results/f51_x6. Each non-X6 row
+Requires an already completed X6 run at results/x6_failover. Each non-X6 row
 runs a REAL, isolated unittest with actual server/manager gRPC endpoints.
 The saved matrix is evidence from executed assertions, not predicted results.
 One expected FAIL_CLOSED row explicitly records a safety/availability limit.
@@ -18,8 +18,8 @@ import subprocess
 import sys
 import time
 
-from Part_F_Tests.f5_evidence import ExperimentEvidence
-from Part_F_Tests.f52_x7_matrix import (MATRIX_FIELDS, check_x6, make_row, read_json,
+from experiments.f5_evidence import ExperimentEvidence
+from experiments.f52_x7_matrix import (MATRIX_FIELDS, check_x6, make_row, read_json,
                             validate_config, write_csv)
 
 
@@ -39,7 +39,7 @@ def run_case(case, root, evidence_dir, x6_summary, timeout_s=90, expected_seed=N
     metrics_path.unlink(missing_ok=True)
     command = [
         sys.executable, "-m", "unittest", "-v",
-        "Part_F_Tests." + case["test"],
+        "tests.part_f." + case["test"],
     ]
     environment = dict(os.environ)
     environment["DS_X7_CASE_DIR"] = str(evidence_dir.resolve())
@@ -172,7 +172,7 @@ def run(config_path, *, output_dir=None, x6_summary=None, one_case=None,
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--config", default=str(Path(__file__).resolve().parents[1] / "Part_F_Tests" / "f52_x7_config.json")
+        "--config", default=str(Path(__file__).resolve().parents[1] / "configs" / "x7_fault_matrix.json")
     )
     parser.add_argument("--output", default=None)
     parser.add_argument("--x6-summary", default=None)

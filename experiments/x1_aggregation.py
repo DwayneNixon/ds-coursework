@@ -1,7 +1,7 @@
 """X1: synchronous multiworker target-difference aggregation versus §5.5 oracle.
 
 Run from the repository root:
-    python -m Part_B_Tests.run_x1_aggregation
+    python -m experiments.x1_aggregation
 
 Uses the existing Part B worker, target oracle, convergence observer and
 B5 metrics. All workers Pull before any Push in each round; the next

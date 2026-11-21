@@ -4,7 +4,7 @@ import csv
 import time
 from pathlib import Path
 
-from Part_C_Tests.test_c2_server_ownership import make_server
+from harness.local_servers import make_server
 from distributed_client import DistributedParameterClient
 from routing import Partition, RoutingTable, KEY_SPACE_END
 from harness.metrics import distributed_payload_sizes, percentile

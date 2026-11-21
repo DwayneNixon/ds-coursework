@@ -4,6 +4,12 @@ import sys
 from pathlib import Path
 
 MODULES = {
+    "b1": "experiments.b1_worker",
+    "b2": "experiments.b2_workload",
+    "b4": "experiments.b4_scenarios",
+    "d1": "experiments.d1_baseline",
+    "x3-summary": "experiments.analysis.x3_summary",
+    "x3-plots": "experiments.analysis.x3_plots",
     "x1": "experiments.x1_aggregation",
     "x2": "experiments.x2_scaling",
     "x3": "experiments.x3_consistency",

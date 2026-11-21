@@ -1,7 +1,7 @@
 """F5.1 / X6: fixed-gradient crash recovery with a live multi-process cluster.
 
 Run from the repository root (after F4.2):
-    python run_f51_x6.py --output results/f51_x6
+    python run_f51_x6.py --output results/x6_failover
 
 This uses the existing F3.3b distributed worker, F3.3a controller, F4.1
 manager, F3.4 servers and B3 fixed_gradient. It does not modify them.
@@ -23,7 +23,7 @@ import manager_pb2_grpc as manager_grpc
 
 from distributed_client import DistributedParameterClient
 from failover_controller import AutomaticFailoverController
-from Part_F_Tests.f5_evidence import (ExperimentEvidence, compare_weights,
+from experiments.f5_evidence import (ExperimentEvidence, compare_weights,
                          fixed_gradient_oracle, recovery_decomposition,
                          throughput_recovery)
 from harness.oracle import fixed_gradient
@@ -340,7 +340,7 @@ def run(output_dir, *, seed=42, pre_fault_s=6.2, post_fault_s=6.2,
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--config", default=str(Path(__file__).resolve().parents[1] / "Part_F_Tests" / "f51_x6_config.json")
+        "--config", default=str(Path(__file__).resolve().parents[1] / "configs" / "x6_failover.json")
     )
     parser.add_argument("--output", default=None)
     parser.add_argument("--seed", type=int, default=None)

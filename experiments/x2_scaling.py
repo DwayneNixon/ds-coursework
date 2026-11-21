@@ -1,6 +1,6 @@
 """X2 real-process 1–8-server scaling with the shared Part B harness.
 
-Run: python -m Part_B_Tests.run_x2_scaling
+Run: python -m experiments.x2_scaling
 Optional: --seeds 42 --output results/x2_smoke
 Each server is an independent OS process with localhost gRPC; no replication.
 """

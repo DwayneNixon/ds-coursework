@@ -9,8 +9,8 @@ from pathlib import Path
 import grpc
 import manager_pb2_grpc as manager_grpc
 import random
-from Part_C_Tests.test_c2_server_ownership import make_server
-from Part_C_Tests.test_c4_straggler_staleness import clock_counter
+from harness.local_servers import make_server
+from harness.local_servers import clock_counter
 
 from server_manager import ServerManager
 from manager_rpc import ManagerService
