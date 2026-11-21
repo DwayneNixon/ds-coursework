@@ -28,6 +28,9 @@ jobs:
           python -m Part_A_Tests.test_server_dependencies
           python -m Part_A_Tests.test_rule_registration
           python -m Part_A_Tests.test_concurrent_pushes
+      - name: Part B native dense-range worker integration
+        run: |
+          python -m Part_B_Tests.test_b2_worker_dense_range
       - name: Part C worker integration
         run: |
           python -m Part_C_Tests.test_c1_worker_harness
