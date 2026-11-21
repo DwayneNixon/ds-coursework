@@ -57,6 +57,11 @@ jobs:
         run: |
           python -m Part_D_Tests.run_d3_benchmark --output results/audit_d3/comparison.csv
           python -m experiments.x4_comparison
+      - name: E1 selective freeze and F3 process recovery regressions
+        run: |
+          python -m Part_E_Tests.test_e12_source_transfer
+          python -m unittest -v Part_F_Tests.test_f31_replica_promotion
+          python -m unittest -v Part_F_Tests.test_f32_replication_repair
       - name: Part F process-based smoke
         run: |
           python -m unittest -v Part_F_Tests.test_f12_automatic_failure_detection
