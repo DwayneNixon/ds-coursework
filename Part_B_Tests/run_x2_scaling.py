@@ -72,12 +72,17 @@ def stop_cluster(control, processes):
     control.stop(0).wait()
 
 
-def start_cluster(count, logs_dir):
+def start_cluster(count, logs_dir, num_keys):
+    if count > num_keys:
+        raise ValueError("Need at least one measured key per server")
     used = set()
     addresses = [free_address(used) for _ in range(count)]
     partitions = [
-        Partition(f"p{i}", (KEY_SPACE_END * i) // count,
-                  (KEY_SPACE_END * (i + 1)) // count, address)
+        # Balance the *measured model keys* over the servers; dividing the
+        # entire uint64 keyspace would put all low-ID keys on server zero.
+        Partition(f"p{i}", (num_keys * i) // count,
+                  (num_keys * (i + 1)) // count if i + 1 < count
+                  else KEY_SPACE_END, address)
         for i, address in enumerate(addresses)
     ]
     table = RoutingTable(partitions)
@@ -118,7 +123,9 @@ def start_cluster(count, logs_dir):
 
 def run_trial(cfg, count, seed, root):
     with tempfile.TemporaryDirectory(prefix="x2_scaling_") as logs:
-        table, control, processes = start_cluster(count, logs)
+        table, control, processes = start_cluster(
+            count, logs, cfg["model"]["num_keys"]
+        )
         clients = []
         observer_client = None
         try:
