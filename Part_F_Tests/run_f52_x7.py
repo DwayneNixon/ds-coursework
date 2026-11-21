@@ -37,7 +37,10 @@ def run_case(case, root, evidence_dir, x6_summary, timeout_s=90, expected_seed=N
     metrics_path = evidence_dir / f"{case['id']}.json"
     # Never consume stale metrics from an earlier successful run.
     metrics_path.unlink(missing_ok=True)
-    command = [sys.executable, "-m", "unittest", "-v", case["test"]]
+    command = [
+        sys.executable, "-m", "unittest", "-v",
+        "Part_F_Tests." + case["test"],
+    ]
     environment = dict(os.environ)
     environment["DS_X7_CASE_DIR"] = str(evidence_dir.resolve())
     environment["DS_X7_CASE_ID"] = case["id"]
@@ -66,7 +69,7 @@ def run_case(case, root, evidence_dir, x6_summary, timeout_s=90, expected_seed=N
 def run(config_path, *, output_dir=None, x6_summary=None, one_case=None,
         timeout_s=90):
     cfg_path = Path(config_path).resolve()
-    root = Path(__file__).resolve().parent
+    root = Path(__file__).resolve().parents[1]
     config = read_json(cfg_path)
     cases = validate_config(config)
     if one_case is not None:
@@ -168,7 +171,9 @@ def run(config_path, *, output_dir=None, x6_summary=None, one_case=None,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="f52_x7_config.json")
+    parser.add_argument(
+        "--config", default=str(Path(__file__).with_name("f52_x7_config.json"))
+    )
     parser.add_argument("--output", default=None)
     parser.add_argument("--x6-summary", default=None)
     parser.add_argument("--case", default=None, help="Run one case; result is INCOMPLETE")
