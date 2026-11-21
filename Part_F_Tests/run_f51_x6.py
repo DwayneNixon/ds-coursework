@@ -122,9 +122,9 @@ def run(output_dir, *, seed=42, pre_fault_s=6.2, post_fault_s=6.2,
     mid_iteration = threading.Event()
     fault_injected = threading.Event()
     failures = []
-    server_program = Path(__file__).resolve().with_name("server.py")
+    server_program = Path(__file__).resolve().parents[1] / "server.py"
     if not server_program.is_file():
-        raise FileNotFoundError("Copy run_f51_x6.py to project root next to server.py")
+        raise FileNotFoundError(f"Missing repository server entrypoint: {server_program}")
 
     # The initial nonfailed primary is deliberately killed between a
     # worker's Pull and Push, so this is genuinely mid-iteration.
@@ -339,7 +339,9 @@ def run(output_dir, *, seed=42, pre_fault_s=6.2, post_fault_s=6.2,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="f51_x6_config.json")
+    parser.add_argument(
+        "--config", default=str(Path(__file__).with_name("f51_x6_config.json"))
+    )
     parser.add_argument("--output", default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--pre-fault-s", type=float, default=None)
