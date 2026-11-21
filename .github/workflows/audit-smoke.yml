@@ -27,6 +27,7 @@ jobs:
       - name: Compile and inspect imports
         run: |
           python -m compileall -q -x '/__pycache__/' .
+          python -m scripts.check_repository
           python -c "import server, parameter_client, server_manager, Part_B_Tests.run_b4, Part_F_Tests.run_f51_x6, Part_F_Tests.run_f52_x7"
       - name: Part A standalone regressions
         run: |
