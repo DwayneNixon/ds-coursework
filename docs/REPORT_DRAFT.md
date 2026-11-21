@@ -53,11 +53,13 @@ With a fixed seeded workload, three trials each across **1–8 real server proce
 
 ### X4: Communication trade-offs
 
-Three-trial median comparisons showed cached key IDs saved approximately **9.65%** total payload bytes, compression **16.36%**, caching plus compression **26.01%**, and D3 batch Pulls **64.15%** (1,600→200 physical RPCs, **87.5%** fewer). Figure 5 compares application payload bytes and percentage reduction. The cache/compression costs can increase Push p99; D3's p99 measures a **group of Pulls** and is not directly comparable with Push p99.
+{{X4_SUMMARY}}
+
+{{X4_TABLE}}
 
 ### X5: Elasticity while training
 
-An E4 two-to-four-server transition under ongoing Push traffic preserved a final Push-count oracle across 3,926 successful updates. The latest trial measured a **0.00675s** cutover and 5-second-window throughput of **325.2 before** and **326.8 Pushes/s after**. Figure 6 shows the observed Push rate around the server-add transition. This is an in-process migration experiment and should not be compared directly with process-isolated X2 timings.
+An E4 two-to-four-server transition under ongoing Push traffic preserved a final Push-count oracle across 3,926 successful updates. The recorded trial measured a **0.00675s** cutover, five-second-window throughput of **325.2 before** and **326.8 Pushes/s after**, and Push **p95 latency of 2.05ms before versus 1.92ms after**. Figure 6 shows the observed Push rate around the server-add transition. This is an in-process migration experiment and should not be compared directly with process-isolated X2 timings.
 
 ### X6: Crash survival and exactly-once effects
 
