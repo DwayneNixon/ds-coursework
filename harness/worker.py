@@ -41,7 +41,8 @@ def run_worker(
             keys = sample_keys(rng, num_keys, keys_per_iter)
             delay_ms = compute_ms
         else:
-            keys = list(workload.sample_keys())
+            # Preserve native dense ranges to avoid a large sparse key list.
+            keys = workload.sample_keys()
             delay_ms = workload.sample_compute_ms()
 
         # 2. Pull current parameters
@@ -119,5 +120,5 @@ def run_worker(
         print(
             f"Worker {worker_id} | "
             f"Iteration {iteration}/{iterations} | "
-            f"Keys: {keys} | Completed"
+            f"Keys: {keys if len(keys) <= 20 else f'{len(keys)} keys ({type(keys).__name__})'} | Completed"
         )
