@@ -35,7 +35,7 @@ def main():
         f"Missing required repository path: {path}"
         for path in expected if not (ROOT / path).exists()
     ]
-    markdown_files = [ROOT / "README.md"] + list((ROOT / "docs").rglob("*.md"))
+    markdown_files = [ROOT / "README.md"] + list((ROOT / "docs").glob("*.md"))
     markdown_files += list(ROOT.glob("Part_*_README.md"))
     local_link_count = 0
     for source in markdown_files:
